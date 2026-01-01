@@ -5,9 +5,10 @@ USE invoice_app;
 CREATE TABLE companies (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    tin_number VARCHAR(100), -- Added TIN number as requested
+    address VARCHAR(500),
     email VARCHAR(255),
     phone VARCHAR(50),
-    address VARCHAR(500),
     city VARCHAR(100),
     state VARCHAR(100),
     country VARCHAR(100),
@@ -58,6 +59,8 @@ CREATE TABLE customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
+    tin VARCHAR(100), -- Added TIN as requested
+    address VARCHAR(500), -- Moved address up as requested
     email VARCHAR(255),
     phone VARCHAR(50),
     mobile VARCHAR(50),
@@ -93,8 +96,10 @@ CREATE TABLE customers (
 -- Items table with 30 fields
 CREATE TABLE items (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    item_code VARCHAR(100), -- Added item code as requested
     company_id INT NOT NULL,
-    name VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL, -- Item name
+    hsn_code VARCHAR(50), -- Added HSN code for GST compliance
     description TEXT,
     sku VARCHAR(100),
     barcode VARCHAR(100),
@@ -131,11 +136,12 @@ CREATE TABLE items (
 -- Invoices table
 CREATE TABLE invoices (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    company_id INT NOT NULL,
-    customer_id INT NOT NULL,
-    user_id INT NOT NULL,
     invoice_number VARCHAR(100) UNIQUE NOT NULL,
-    invoice_date DATE NOT NULL,
+    date DATE NOT NULL, -- Invoice date
+    time TIME NOT NULL, -- Invoice time as requested
+    customer_id INT NOT NULL, -- Customer reference
+    company_id INT NOT NULL,
+    user_id INT NOT NULL,
     due_date DATE,
     subtotal DECIMAL(15,2) NOT NULL,
     tax_rate DECIMAL(5,2) DEFAULT 0,
@@ -157,10 +163,11 @@ CREATE TABLE invoices (
 CREATE TABLE invoice_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     invoice_id INT NOT NULL,
-    item_id INT NOT NULL,
+    item_code VARCHAR(100), -- Item code as requested
     quantity DECIMAL(10,3) NOT NULL,
     rate DECIMAL(15,2) NOT NULL,
     amount DECIMAL(15,2) NOT NULL,
+    item_id INT NOT NULL,
     FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
     FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
 );

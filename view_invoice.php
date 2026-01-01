@@ -72,7 +72,7 @@ include 'includes/header.php';
             <h2>INVOICE</h2>
             <p>
                 <strong>Invoice #:</strong> <?php echo htmlspecialchars($invoice['invoice_number']); ?><br>
-                <strong>Date:</strong> <?php echo date('M d, Y', strtotime($invoice['invoice_date'])); ?><br>
+                <strong>Date:</strong> <?php echo date('M d, Y', strtotime($invoice['date'])); ?><br>
                 <?php if ($invoice['due_date']): ?>
                     <strong>Due Date:</strong> <?php echo date('M d, Y', strtotime($invoice['due_date'])); ?><br>
                 <?php endif; ?>

@@ -12,7 +12,7 @@ $invoice_id = $_GET['id'] ?? 0;
 $message = '';
 
 // Get invoice details
-$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.tax_id as customer_tax_id
+$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.tin as customer_tin
           FROM invoices i 
           JOIN customers c ON i.customer_id = c.id 
           WHERE i.id = :id AND i.company_id = :company_id";
@@ -29,7 +29,7 @@ if (!$invoice) {
 }
 
 // Get invoice items
-$query = "SELECT ii.*, i.name as item_name, i.sku, i.tax_rate as item_tax_rate
+$query = "SELECT ii.*, i.name as item_name, i.item_code, i.hsn_code, i.tax_rate as item_tax_rate
           FROM invoice_items ii 
           JOIN items i ON ii.item_id = i.id 
           WHERE ii.invoice_id = :invoice_id";
@@ -45,12 +45,13 @@ if ($_POST && $_POST['action'] === 'send_to_api') {
         // Prepare invoice data for API
         $api_data = [
             'invoice_number' => $invoice['invoice_number'],
-            'invoice_date' => $invoice['invoice_date'],
+            'invoice_date' => $invoice['date'],
+            'invoice_time' => $invoice['time'],
             'due_date' => $invoice['due_date'],
             'customer' => [
                 'name' => $invoice['customer_name'],
                 'email' => $invoice['customer_email'],
-                'tax_id' => $invoice['customer_tax_id']
+                'tin' => $invoice['customer_tin']
             ],
             'items' => [],
             'subtotal' => $invoice['subtotal'],
@@ -62,7 +63,8 @@ if ($_POST && $_POST['action'] === 'send_to_api') {
         foreach ($invoice_items as $item) {
             $api_data['items'][] = [
                 'name' => $item['item_name'],
-                'sku' => $item['sku'],
+                'item_code' => $item['item_code'],
+                'hsn_code' => $item['hsn_code'],
                 'quantity' => $item['quantity'],
                 'rate' => $item['rate'],
                 'amount' => $item['amount']
@@ -148,7 +150,7 @@ include 'includes/header.php';
                     <div class="col-md-6">
                         <p><strong>Invoice Number:</strong> <?php echo htmlspecialchars($invoice['invoice_number']); ?></p>
                         <p><strong>Customer:</strong> <?php echo htmlspecialchars($invoice['customer_name']); ?></p>
-                        <p><strong>Date:</strong> <?php echo date('M d, Y', strtotime($invoice['invoice_date'])); ?></p>
+                        <p><strong>Date:</strong> <?php echo date('M d, Y', strtotime($invoice['date'])); ?></p>
                     </div>
                     <div class="col-md-6">
                         <p><strong>Total Amount:</strong> $<?php echo number_format($invoice['total_amount'], 2); ?></p>

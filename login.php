@@ -42,10 +42,11 @@ if ($auth->isLoggedIn()) {
         
         .login-card {
             background: #fff;
-            padding: 40px;
+            padding: 50px;
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             border: none;
+            font-size: 1.1rem;
         }
         
         .icon-circle {
@@ -108,14 +109,14 @@ if ($auth->isLoggedIn()) {
 <body>
     <div class="container">
         <div class="row justify-content-center">
-            <div class="col-md-5 col-lg-4">
+            <div class="col-md-7 col-lg-6">
                 <div class="login-card">
                     <div class="text-center mb-4">
                         <div class="icon-circle">
                             <i class="fas fa-lock"></i>
                         </div>
-                        <h5 class="fw-bold mb-1">Invoice Management System</h5>
-                        <p class="text-muted small">Sign in to your account</p>
+                        <h4 class="fw-bold mb-1">Invoice Management System</h4>
+                        <p class="text-muted">Sign in to your account</p>
                     </div>
                     
                     <?php if ($error): ?>
@@ -124,7 +125,7 @@ if ($auth->isLoggedIn()) {
                     
                     <form method="POST">
                         <div class="mb-3">
-                            <label class="form-label small">Username</label>
+                            <label class="form-label">Username</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="far fa-user"></i>
@@ -134,7 +135,7 @@ if ($auth->isLoggedIn()) {
                         </div>
                         
                         <div class="mb-4">
-                            <label class="form-label small">Password</label>
+                            <label class="form-label">Password</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <i class="fas fa-lock-open"></i>
@@ -145,12 +146,6 @@ if ($auth->isLoggedIn()) {
                         
                         <button type="submit" class="btn btn-primary w-100">Sign In</button>
                     </form>
-                    
-                    <div class="demo-box">
-                        <p class="mb-1 fw-bold">Demo Credentials:</p>
-                        <p class="mb-0">Admin: admin / admin123</p>
-                        <p class="mb-0">Accountant: accountant / acc123</p>
-                    </div>
                 </div>
             </div>
         </div>
