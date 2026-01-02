@@ -66,7 +66,6 @@ CREATE TABLE customers (
     mobile VARCHAR(50),
     fax VARCHAR(50),
     website VARCHAR(255),
-    tax_id VARCHAR(100),
     registration_number VARCHAR(100),
     billing_address VARCHAR(500),
     billing_city VARCHAR(100),

@@ -96,11 +96,6 @@ include 'includes/header.php';
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Create New Invoice</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="my_invoices.php" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left"></i> Back to My Invoices
-        </a>
-    </div>
 </div>
 
 <?php if ($message): ?>
@@ -113,17 +108,7 @@ include 'includes/header.php';
 
 <?php if (empty($customers) || empty($items)): ?>
     <div class="alert alert-warning">
-        <h5>Setup Required</h5>
-        <p>Before creating invoices, please ensure you have:</p>
-        <ul>
-            <?php if (empty($customers)): ?>
-                <li>At least one customer added</li>
-            <?php endif; ?>
-            <?php if (empty($items)): ?>
-                <li>At least one item/service added</li>
-            <?php endif; ?>
-        </ul>
-        <p>Please contact your administrator to add customers and items.</p>
+        Please contact your administrator to add customers and items before creating invoices.
     </div>
 <?php else: ?>
 

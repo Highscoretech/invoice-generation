@@ -26,23 +26,11 @@ include 'includes/header.php';
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">My Invoices</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="create_invoice.php" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Create Invoice
-        </a>
-    </div>
 </div>
 
 <?php if (empty($invoices)): ?>
     <div class="text-center py-5">
-        <div class="mb-3 text-muted" style="opacity: 0.3;">
-            <i class="fas fa-file-invoice fa-4x"></i>
-        </div>
-        <h5 class="text-secondary">No invoices created yet</h5>
-        <p class="text-muted">Create your first invoice to get started</p>
-        <a href="create_invoice.php" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Create Your First Invoice
-        </a>
+        <h5 class="text-secondary">No invoices created yet.</h5>
     </div>
 <?php else: ?>
     <div class="card">
