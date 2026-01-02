@@ -78,7 +78,7 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
 }
 
 // Get customers and items for dropdowns
-$query = "SELECT id, name, tin FROM customers WHERE company_id = :company_id AND status = 'active' ORDER BY name";
+$query = "SELECT id, name, tax_id FROM customers WHERE company_id = :company_id AND status = 'active' ORDER BY name";
 $stmt = $conn->prepare($query);
 $stmt->bindParam(':company_id', $_SESSION['company_id']);
 $stmt->execute();

@@ -59,7 +59,7 @@ CREATE TABLE customers (
     id INT AUTO_INCREMENT PRIMARY KEY,
     company_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
-    tin VARCHAR(100), -- Added TIN as requested
+    tax_id VARCHAR(100), -- Added GSTIN as requested
     address VARCHAR(500), -- Moved address up as requested
     email VARCHAR(255),
     phone VARCHAR(50),

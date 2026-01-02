@@ -12,7 +12,7 @@ $invoice_id = $_GET['id'] ?? 0;
 $message = '';
 
 // Get invoice details
-$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.tin as customer_tin
+$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.tax_id as customer_tin
           FROM invoices i 
           JOIN customers c ON i.customer_id = c.id 
           WHERE i.id = :id AND i.company_id = :company_id";

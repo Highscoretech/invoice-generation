@@ -29,6 +29,7 @@ if ($action === 'delete' && isset($_GET['id'])) {
 if ($_POST) {
     if ($action === 'create' || $action === 'edit') {
         $data = [
+            'item_code' => $_POST['item_code'],
             'name' => $_POST['name'],
             'description' => $_POST['description'],
             'sku' => $_POST['sku'],
@@ -252,7 +253,11 @@ include 'includes/header.php';
             </div>
             <div class="col-md-4">
                 <label class="form-label">Item Code *</label>
-                <input type="text" class="form-control" name="sku" value="<?php echo $item['sku'] ?? ''; ?>" required>
+                <input type="text" class="form-control" name="item_code" value="<?php echo $item['item_code'] ?? ''; ?>" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">SKU</label>
+                <input type="text" class="form-control" name="sku" value="<?php echo $item['sku'] ?? ''; ?>">
             </div>
             <div class="col-md-4">
                 <label class="form-label">Category</label>
