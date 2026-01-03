@@ -77,7 +77,6 @@
         <?php if ($_SESSION['role'] === 'admin'): ?>
             <a class="nav-link <?php echo $page_title === 'Customers' ? 'active' : ''; ?>" href="customers.php"><i class="fas fa-users"></i> Customers</a>
             <a class="nav-link <?php echo $page_title === 'Items' ? 'active' : ''; ?>" href="items.php"><i class="fas fa-box"></i> Items & Rates</a>
-            <a class="nav-link <?php echo $page_title === 'Invoices' ? 'active' : ''; ?>" href="invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php elseif ($_SESSION['role'] === 'accountant'): ?>
             <a class="nav-link <?php echo $page_title === 'Create Invoice' ? 'active' : ''; ?>" href="create_invoice.php"><i class="fas fa-plus-circle"></i> Create Invoice</a>
             <a class="nav-link <?php echo $page_title === 'My Invoices' ? 'active' : ''; ?>" href="my_invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>

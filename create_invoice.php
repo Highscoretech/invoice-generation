@@ -96,6 +96,9 @@ include 'includes/header.php';
 
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Create New Invoice</h1>
+    <button type="submit" form="invoiceForm" class="btn btn-primary" id="topSubmitBtn">
+        <i class="fas fa-save"></i> Create Invoice
+    </button>
 </div>
 
 <?php if ($message): ?>
@@ -106,11 +109,6 @@ include 'includes/header.php';
     <div class="alert alert-danger"><?php echo $error; ?></div>
 <?php endif; ?>
 
-<?php if (empty($customers) || empty($items)): ?>
-    <div class="alert alert-warning">
-        Please contact your administrator to add customers and items before creating invoices.
-    </div>
-<?php else: ?>
 
 <form method="POST" id="invoiceForm">
     <input type="hidden" name="action" value="create_invoice">
@@ -131,8 +129,8 @@ include 'includes/header.php';
                                     <?php foreach ($customers as $customer): ?>
                                         <option value="<?php echo $customer['id']; ?>">
                                             <?php echo htmlspecialchars($customer['name']); ?>
-                                            <?php if ($customer['tin']): ?>
-                                                (TIN: <?php echo htmlspecialchars($customer['tin']); ?>)
+                                            <?php if ($customer['tax_id']): ?>
+                                                (TIN: <?php echo htmlspecialchars($customer['tax_id']); ?>)
                                             <?php endif; ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -362,10 +360,14 @@ document.getElementById('invoiceForm').addEventListener('submit', function(e) {
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Invoice...';
     submitBtn.disabled = true;
+
+    const topSubmitBtn = document.getElementById('topSubmitBtn');
+    if (topSubmitBtn) {
+        topSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Invoice...';
+        topSubmitBtn.disabled = true;
+    }
 });
 </script>
-
-<?php endif; ?>
 
 <style>
 .item-row {

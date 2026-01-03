@@ -76,7 +76,7 @@ if ($_POST && $_POST['action'] === 'send_to_api') {
         $api_url = 'https://government-portal-api.example.com/invoices';
         
         // For demo purposes, we'll simulate the API response
-        $api_success = rand(0, 1); // Random success/failure for demo
+        $api_success = true; // Always succeed for demo
         
         if ($api_success) {
             $api_response = json_encode([

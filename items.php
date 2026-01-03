@@ -48,18 +48,11 @@ if ($_POST) {
             'mrp' => $_POST['mrp'],
             'discount_percentage' => $_POST['discount_percentage'],
             'minimum_stock' => $_POST['minimum_stock'],
-            'maximum_stock' => $_POST['maximum_stock'],
-            'current_stock' => $_POST['current_stock'],
+            'current_stock' => $_POST['current_stock'] ?? 0,
             'reorder_level' => $_POST['reorder_level'],
             'supplier' => $_POST['supplier'],
             'warranty_period' => $_POST['warranty_period'],
-            'material' => $_POST['material'],
             'hsn_code' => $_POST['hsn_code'],
-            'sac_code' => $_POST['sac_code'],
-            'tax_category' => $_POST['tax_category'],
-            'cess' => $_POST['cess'],
-            'purchase_rate' => $_POST['purchase_rate'],
-            'custom_field' => $_POST['custom_field'],
             'status' => $_POST['status']
         ];
         
@@ -354,12 +347,12 @@ include 'includes/header.php';
                 <input type="number" class="form-control" name="minimum_stock" value="<?php echo $item['minimum_stock'] ?? ''; ?>">
             </div>
             <div class="col-md-4">
-                <label class="form-label">Maximum Stock</label>
-                <input type="number" class="form-control" name="maximum_stock" value="<?php echo $item['maximum_stock'] ?? ''; ?>">
-            </div>
-            <div class="col-md-4">
                 <label class="form-label">Reorder Level</label>
                 <input type="number" class="form-control" name="reorder_level" value="<?php echo $item['reorder_level'] ?? ''; ?>">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Current Stock</label>
+                <input type="number" class="form-control" name="current_stock" value="<?php echo $item['current_stock'] ?? ''; ?>">
             </div>
         </div>
 
