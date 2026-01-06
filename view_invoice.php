@@ -30,7 +30,7 @@ if (!$invoice) {
 }
 
 // Get invoice items
-$query = "SELECT ii.*, i.name as item_name 
+$query = "SELECT ii.*, i.name as item_name, i.currency as item_currency 
           FROM invoice_items ii 
           JOIN items i ON ii.item_id = i.id 
           WHERE ii.invoice_id = :invoice_id";
@@ -40,6 +40,8 @@ $stmt->bindParam(':invoice_id', $invoice_id);
 $stmt->execute();
 $invoice_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+$currency = !empty($invoice_items) ? ($invoice_items[0]['item_currency'] ?? 'USD') : 'USD';
+$sym = $currency === 'INR' ? '₹' : ($currency === 'EUR' ? '€' : ($currency === 'GBP' ? '£' : ($currency === 'NGN' ? '₦' : '$')));
 $page_title = 'Invoice ' . $invoice['invoice_number'];
 include 'includes/header.php';
 ?>
@@ -50,7 +52,7 @@ include 'includes/header.php';
         <button onclick="window.print()" class="btn btn-secondary">
             <i class="fas fa-print"></i> Print
         </button>
-        <?php if ($invoice['api_status'] === 'pending'): ?>
+        <?php if ($_SESSION['role'] === 'accountant' && $invoice['api_status'] === 'pending'): ?>
             <a href="send_to_api.php?id=<?php echo $invoice['id']; ?>" class="btn btn-success">
                 <i class="fas fa-paper-plane"></i> Send to Government Portal
             </a>
@@ -77,6 +79,14 @@ include 'includes/header.php';
                     <strong>Due Date:</strong> <?php echo date('M d, Y', strtotime($invoice['due_date'])); ?><br>
                 <?php endif; ?>
             </p>
+            <?php if (!empty($invoice['qr_url']) && $invoice['api_status'] === 'success'): ?>
+                <div class="mt-2">
+                    <a href="<?php echo htmlspecialchars($invoice['qr_url']); ?>" target="_blank" title="Open QR URL">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=<?php echo urlencode($invoice['qr_url']); ?>" 
+                             alt="QR" width="120" height="120" style="border-radius:8px;">
+                    </a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     
@@ -106,6 +116,7 @@ include 'includes/header.php';
                                     'draft' => 'secondary',
                                     'sent' => 'primary',
                                     'paid' => 'success',
+                                    'verified' => 'success',
                                     'cancelled' => 'danger',
                                     default => 'secondary'
                                 };
@@ -149,9 +160,21 @@ include 'includes/header.php';
                 <?php foreach ($invoice_items as $item): ?>
                 <tr>
                     <td><?php echo htmlspecialchars($item['item_name']); ?></td>
-                    <td class="text-center"><?php echo number_format($item['quantity'], 2); ?></td>
-                    <td class="text-end">$<?php echo number_format($item['rate'], 2); ?></td>
-                    <td class="text-end">$<?php echo number_format($item['amount'], 2); ?></td>
+                    <td class="text-center"><?php echo number_format($item['quantity'], 0); ?></td>
+                    <td class="text-end">
+                        <?php
+                            $icur = $item['item_currency'] ?? $currency;
+                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                            echo $isym . number_format($item['rate'], 2);
+                        ?>
+                    </td>
+                    <td class="text-end">
+                        <?php
+                            $icur = $item['item_currency'] ?? $currency;
+                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                            echo $isym . number_format($item['amount'], 2);
+                        ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
@@ -170,16 +193,16 @@ include 'includes/header.php';
                 <div class="card-body">
                     <div class="row mb-2">
                         <div class="col-6"><strong>Subtotal:</strong></div>
-                        <div class="col-6 text-end">$<?php echo number_format($invoice['subtotal'], 2); ?></div>
+                        <div class="col-6 text-end"><?php echo $sym . number_format($invoice['subtotal'], 2); ?></div>
                     </div>
                     <div class="row mb-2">
                         <div class="col-6"><strong>Tax (<?php echo $invoice['tax_rate']; ?>%):</strong></div>
-                        <div class="col-6 text-end">$<?php echo number_format($invoice['tax_amount'], 2); ?></div>
+                        <div class="col-6 text-end"><?php echo $sym . number_format($invoice['tax_amount'], 2); ?></div>
                     </div>
                     <hr>
                     <div class="row">
                         <div class="col-6"><strong>Total:</strong></div>
-                        <div class="col-6 text-end"><strong>$<?php echo number_format($invoice['total_amount'], 2); ?></strong></div>
+                        <div class="col-6 text-end"><strong><?php echo $sym . number_format($invoice['total_amount'], 2); ?></strong></div>
                     </div>
                 </div>
             </div>

@@ -14,16 +14,29 @@ $error = '';
 // Handle form submission
 if ($_POST && $_POST['action'] === 'create_invoice') {
     try {
+        $typeStmt = $conn->prepare("SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'invoices' AND COLUMN_NAME = 'status'");
+        $typeStmt->execute();
+        $columnType = $typeStmt->fetchColumn();
+        if ($columnType && strpos($columnType, "'verified'") === false) {
+            $conn->exec("ALTER TABLE invoices MODIFY status ENUM('draft','sent','paid','cancelled','verified') DEFAULT 'draft'");
+        }
+        $qrColStmt = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'invoices' AND COLUMN_NAME = 'qr_url'");
+        $qrColStmt->execute();
+        $qrExists = (int)$qrColStmt->fetchColumn();
+        if ($qrExists === 0) {
+            $conn->exec("ALTER TABLE invoices ADD COLUMN qr_url VARCHAR(255) NULL");
+        }
         $conn->beginTransaction();
         
         // Generate invoice number
         $invoice_number = 'INV-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+        $qr_url = 'https://example.com/invoice?no=' . urlencode($invoice_number);
         
         // Insert invoice
         $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id, 
-                  due_date, subtotal, tax_rate, tax_amount, discount_amount, total_amount, status) 
+                  due_date, subtotal, tax_rate, tax_amount, discount_amount, total_amount, qr_url, status) 
                   VALUES (:invoice_number, :date, :time, :customer_id, :company_id, :user_id, 
-                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :total_amount, :status)";
+                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :total_amount, :qr_url, :status)";
         
         $stmt = $conn->prepare($query);
         $stmt->execute([
@@ -39,7 +52,8 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'tax_amount' => $_POST['tax_amount'],
             'discount_amount' => $_POST['discount_amount'] ?? 0,
             'total_amount' => $_POST['total_amount'],
-            'status' => $_POST['status'] ?? 'draft'
+            'qr_url' => $qr_url,
+            'status' => 'verified'
         ]);
         
         $invoice_id = $conn->lastInsertId();
@@ -156,11 +170,8 @@ include 'includes/header.php';
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="status" class="form-label">Status</label>
-                                <select class="form-select" id="status" name="status">
-                                    <option value="draft">Draft</option>
-                                    <option value="sent">Sent</option>
-                                </select>
+                                <label class="form-label">Status</label>
+                                <input type="text" class="form-control" value="Auto" disabled>
                             </div>
                         </div>
                     </div>
@@ -226,7 +237,7 @@ include 'includes/header.php';
                     <div class="mt-2">
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i> 
-                            Invoice will be saved as draft by default
+                            Invoice will be saved as Verified
                         </small>
                     </div>
                 </div>
@@ -251,7 +262,7 @@ function addItem() {
     
     const itemHtml = `
         <div class="row mb-3 item-row border-bottom pb-3" id="item-${itemCount}">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4 mb-2 mb-md-0">
                 <label class="form-label small">Item</label>
                 <select class="form-select" name="items[${itemCount}][item_id]" onchange="updateItemDetails(${itemCount})" required>
                     <option value="">Select Item</option>
@@ -259,24 +270,25 @@ function addItem() {
                 </select>
                 <input type="hidden" name="items[${itemCount}][item_code]" id="item_code_${itemCount}">
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Quantity</label>
                 <input type="number" class="form-control" name="items[${itemCount}][quantity]" 
-                       placeholder="0.00" step="0.01" onchange="calculateItemAmount(${itemCount})" required>
+                       placeholder="0" step="1" min="1" onchange="calculateItemAmount(${itemCount})" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Rate</label>
                 <input type="number" class="form-control" name="items[${itemCount}][rate]" 
                        placeholder="0.00" step="0.01" onchange="calculateItemAmount(${itemCount})" required>
             </div>
-            <div class="col-md-2">
+            <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Amount</label>
                 <input type="number" class="form-control" name="items[${itemCount}][amount]" 
                        placeholder="0.00" step="0.01" readonly>
             </div>
-            <div class="col-md-2">
-                <label class="form-label small">&nbsp;</label>
-                <button type="button" class="btn btn-danger btn-sm d-block" onclick="removeItem(${itemCount})" title="Remove Item">
+            <div class="col-6 col-md-2 pt-0 pt-md-0">
+                <label class="form-label small d-none d-md-block">&nbsp;</label>
+                <label class="form-label small d-block d-md-none text-danger">Action</label>
+                <button type="button" class="btn btn-danger btn-sm d-block w-100 w-md-auto" onclick="removeItem(${itemCount})" title="Remove Item">
                     <i class="fas fa-trash"></i> Remove
                 </button>
             </div>

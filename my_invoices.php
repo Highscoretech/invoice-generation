@@ -9,9 +9,15 @@ $database = new Database();
 $conn = $database->getConnection();
 
 // Get invoices for current user
-$query = "SELECT i.*, c.name as customer_name 
+$query = "SELECT i.*, c.name as customer_name, ic.currency
           FROM invoices i 
           JOIN customers c ON i.customer_id = c.id 
+          LEFT JOIN (
+            SELECT ii.invoice_id, MAX(it.currency) AS currency
+            FROM invoice_items ii
+            JOIN items it ON it.id = ii.item_id
+            GROUP BY ii.invoice_id
+          ) ic ON ic.invoice_id = i.id
           WHERE i.user_id = :user_id 
           ORDER BY i.created_at DESC";
 
@@ -38,6 +44,46 @@ include 'includes/header.php';
         <h5 class="text-secondary">No invoices created yet.</h5>
     </div>
 <?php else: ?>
+    <div class="row mt-0 mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-primary"><?php echo count($invoices); ?></h5>
+                    <p class="card-text text-muted">Total Invoices</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">
+                        <?php echo count(array_filter($invoices, fn($i) => $i['api_status'] === 'pending')); ?>
+                    </h5>
+                    <p class="card-text text-muted">Pending API</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-success">
+                        <?php echo count(array_filter($invoices, fn($i) => $i['api_status'] === 'success')); ?>
+                    </h5>
+                    <p class="card-text text-muted">Sent to Gov</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-info">
+                        $<?php echo number_format(array_sum(array_column($invoices, 'total_amount')), 2); ?>
+                    </h5>
+                    <p class="card-text text-muted">Total Value</p>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="card">
         <div class="card-body">
             <div class="table-responsive">
@@ -70,13 +116,18 @@ include 'includes/header.php';
                                 <?php endif; ?>
                             </td>
                             <td class="text-end">
-                                <strong>$<?php echo number_format($invoice['total_amount'], 2); ?></strong>
+                                <?php
+                                    $cur = $invoice['currency'] ?? 'USD';
+                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                                    echo '<strong>' . $sym . number_format($invoice['total_amount'], 2) . '</strong>';
+                                ?>
                             </td>
                             <td class="text-center">
                                 <span class="badge bg-<?php 
                                     echo match($invoice['status']) {
                                         'draft' => 'secondary',
                                         'sent' => 'info',
+                                        'verified' => 'success',
                                         'paid' => 'success',
                                         'cancelled' => 'danger',
                                         default => 'secondary'
@@ -116,47 +167,6 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row mt-4">
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-primary"><?php echo count($invoices); ?></h5>
-                    <p class="card-text text-muted">Total Invoices</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-warning">
-                        <?php echo count(array_filter($invoices, fn($i) => $i['api_status'] === 'pending')); ?>
-                    </h5>
-                    <p class="card-text text-muted">Pending API</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-success">
-                        <?php echo count(array_filter($invoices, fn($i) => $i['api_status'] === 'success')); ?>
-                    </h5>
-                    <p class="card-text text-muted">Sent to Gov</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h5 class="card-title text-info">
-                        $<?php echo number_format(array_sum(array_column($invoices, 'total_amount')), 2); ?>
-                    </h5>
-                    <p class="card-text text-muted">Total Value</p>
-                </div>
             </div>
         </div>
     </div>

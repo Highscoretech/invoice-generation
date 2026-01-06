@@ -44,19 +44,11 @@ if ($_POST) {
             'shipping_address' => $_POST['shipping_address'],
             'contact_person' => $_POST['contact_person'],
             'contact_designation' => $_POST['contact_designation'],
-            'bank_name' => $_POST['bank_name'],
-            'account_number' => $_POST['account_number'],
-            'ifsc_code' => $_POST['ifsc_code'],
-            'industry' => $_POST['industry'],
-            'customer_type' => $_POST['customer_type'],
             'credit_limit' => $_POST['credit_limit'],
             'payment_terms' => $_POST['payment_terms'],
-            'credit_days' => $_POST['credit_days'],
             'discount_percentage' => $_POST['discount_percentage'],
-            'registration_date' => $_POST['registration_date'],
             'currency' => $_POST['currency'],
             'notes' => $_POST['notes'],
-            'custom_field' => $_POST['custom_field'],
             'status' => $_POST['status']
         ];
         
@@ -438,6 +430,7 @@ include 'includes/header.php';
                     <option value="USD" <?php echo ($customer['currency'] ?? '') === 'USD' ? 'selected' : ''; ?>>USD</option>
                     <option value="EUR" <?php echo ($customer['currency'] ?? '') === 'EUR' ? 'selected' : ''; ?>>EUR</option>
                     <option value="GBP" <?php echo ($customer['currency'] ?? '') === 'GBP' ? 'selected' : ''; ?>>GBP</option>
+                    <option value="NGN" <?php echo ($customer['currency'] ?? '') === 'NGN' ? 'selected' : ''; ?>>NGN</option>
                 </select>
             </div>
         </div>

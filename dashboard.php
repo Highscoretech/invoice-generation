@@ -135,8 +135,8 @@ include 'includes/header.php';
     <div class="col-md-4">
         <div class="stat-card">
             <div>
-                <div class="label">Active Status</div>
-                <div class="value text-online">Online</div>
+                <div class="label">Total invoice</div>
+                <div class="value"><?php echo $stats['invoices']; ?></div>
             </div>
             <div class="icon-box text-primary">
                 <i class="fas fa-th-list"></i>

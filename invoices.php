@@ -9,10 +9,16 @@ $database = new Database();
 $conn = $database->getConnection();
 
 // Get all invoices for the company
-$query = "SELECT i.*, c.name as customer_name, u.username 
+$query = "SELECT i.*, c.name as customer_name, u.username, ic.currency
           FROM invoices i 
           JOIN customers c ON i.customer_id = c.id 
           JOIN users u ON i.user_id = u.id
+          LEFT JOIN (
+            SELECT ii.invoice_id, MAX(it.currency) AS currency
+            FROM invoice_items ii
+            JOIN items it ON it.id = ii.item_id
+            GROUP BY ii.invoice_id
+          ) ic ON ic.invoice_id = i.id
           WHERE i.company_id = :company_id 
           ORDER BY i.created_at DESC";
 
@@ -49,14 +55,21 @@ include 'includes/header.php';
                 <td><?php echo htmlspecialchars($invoice['invoice_number']); ?></td>
                 <td><?php echo htmlspecialchars($invoice['customer_name']); ?></td>
                 <td><?php echo htmlspecialchars($invoice['username']); ?></td>
-                <td><?php echo date('M d, Y', strtotime($invoice['invoice_date'])); ?></td>
-                <td>$<?php echo number_format($invoice['total_amount'], 2); ?></td>
+                <td><?php echo !empty($invoice['date']) ? date('M d, Y', strtotime($invoice['date'])) : '-'; ?></td>
+                <td>
+                    <?php
+                        $cur = $invoice['currency'] ?? 'USD';
+                        $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                        echo $sym . number_format($invoice['total_amount'], 2);
+                    ?>
+                </td>
                 <td>
                     <span class="badge bg-<?php 
                         echo match($invoice['status']) {
                             'draft' => 'secondary',
                             'sent' => 'primary',
                             'paid' => 'success',
+                            'verified' => 'success',
                             'cancelled' => 'danger',
                             default => 'secondary'
                         };
@@ -81,7 +94,7 @@ include 'includes/header.php';
                     <a href="view_invoice.php?id=<?php echo $invoice['id']; ?>" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i> View
                     </a>
-                    <?php if ($invoice['api_status'] === 'pending'): ?>
+                    <?php if ($_SESSION['role'] === 'accountant' && $invoice['api_status'] === 'pending'): ?>
                         <a href="send_to_api.php?id=<?php echo $invoice['id']; ?>" class="btn btn-sm btn-outline-success">
                             <i class="fas fa-paper-plane"></i> Send to API
                         </a>

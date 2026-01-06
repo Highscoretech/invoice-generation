@@ -8,6 +8,13 @@ $auth->requireRole('admin');
 $database = new Database();
 $conn = $database->getConnection();
 
+$__stmt = $conn->prepare("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'items' AND COLUMN_NAME = 'currency'");
+$__stmt->execute();
+$__exists = (int)$__stmt->fetchColumn();
+if ($__exists === 0) {
+    $conn->exec("ALTER TABLE items ADD COLUMN currency VARCHAR(10) DEFAULT 'USD'");
+}
+
 $action = $_GET['action'] ?? 'list';
 $message = '';
 
@@ -46,6 +53,7 @@ if ($_POST) {
             'cost_price' => $_POST['cost_price'],
             'selling_price' => $_POST['selling_price'],
             'mrp' => $_POST['mrp'],
+            'currency' => $_POST['currency'],
             'discount_percentage' => $_POST['discount_percentage'],
             'minimum_stock' => $_POST['minimum_stock'],
             'current_stock' => $_POST['current_stock'] ?? 0,
@@ -147,7 +155,13 @@ include 'includes/header.php';
                             <td class="ps-4 py-3 fw-medium" style="color: #111827;"><?php echo htmlspecialchars($itm['name']); ?></td>
                             <td class="py-3 text-muted" style="font-size: 0.85rem;"><?php echo htmlspecialchars($itm['sku'] ?: '-'); ?></td>
                             <td class="py-3 text-muted" style="font-size: 0.85rem;"><?php echo htmlspecialchars($itm['category'] ?: '-'); ?></td>
-                            <td class="py-3 text-muted" style="font-size: 0.85rem;"><?php echo $itm['selling_price'] ? '$' . number_format($itm['selling_price'], 2) : '-'; ?></td>
+                            <td class="py-3 text-muted" style="font-size: 0.85rem;">
+                                <?php
+                                    $cur = $itm['currency'] ?? 'USD';
+                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                                    echo $itm['selling_price'] ? $sym . number_format($itm['selling_price'], 2) : '-';
+                                ?>
+                            </td>
                             <td class="py-3 text-muted" style="font-size: 0.85rem;"><?php echo $itm['current_stock'] ?? 0; ?></td>
                             <td class="pe-4 py-3 text-end">
                                 <a href="?action=edit&id=<?php echo $itm['id']; ?>" class="text-decoration-none px-2 text-primary" title="Edit">
@@ -407,6 +421,16 @@ include 'includes/header.php';
                 <select class="form-select" name="status">
                     <option value="active" <?php echo ($item['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Active</option>
                     <option value="inactive" <?php echo ($item['status'] ?? '') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Preferred Currency</label>
+                <select class="form-select" name="currency">
+                    <option value="INR" <?php echo ($item['currency'] ?? 'INR') === 'INR' ? 'selected' : ''; ?>>INR</option>
+                    <option value="USD" <?php echo ($item['currency'] ?? '') === 'USD' ? 'selected' : ''; ?>>USD</option>
+                    <option value="EUR" <?php echo ($item['currency'] ?? '') === 'EUR' ? 'selected' : ''; ?>>EUR</option>
+                    <option value="GBP" <?php echo ($item['currency'] ?? '') === 'GBP' ? 'selected' : ''; ?>>GBP</option>
+                    <option value="NGN" <?php echo ($item['currency'] ?? '') === 'NGN' ? 'selected' : ''; ?>>NGN</option>
                 </select>
             </div>
             <div class="col-md-4">

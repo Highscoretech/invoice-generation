@@ -19,6 +19,8 @@
             padding: 20px;
             display: flex;
             flex-direction: column;
+            transition: all 0.3s;
+            z-index: 1000;
         }
         .sidebar-brand { font-size: 1.25rem; font-weight: 700; margin-bottom: 30px; }
         .sidebar-brand span { font-size: 0.85rem; opacity: 0.7; display: block; }
@@ -43,7 +45,52 @@
         .user-avatar { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; }
         
         /* Main Content */
-        .main-content { margin-left: 260px; padding: 40px; }
+        .main-content { margin-left: 260px; padding: 40px; transition: all 0.3s; }
+        
+        /* Mobile Toggle */
+        .mobile-header { display: none; }
+        .sidebar-overlay { display: none; }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+                padding-top: 80px; /* Space for mobile header */
+            }
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 15px 20px;
+                background: white;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 999;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 990;
+            }
+            .sidebar-overlay.active {
+                display: block;
+            }
+        }
         
         /* Dashboard Cards */
         .stat-card {
@@ -65,7 +112,21 @@
 </head>
 <body>
 
-<div class="sidebar" style="background-color: <?php echo $_SESSION['role'] === 'accountant' ? '#0d542b' : '#312e81'; ?>">
+<!-- Mobile Header -->
+<div class="mobile-header">
+    <button class="btn btn-link text-dark p-0" id="sidebarToggle">
+        <i class="fas fa-bars fa-lg"></i>
+    </button>
+    <div class="fw-bold">Invoice System</div>
+    <div class="user-avatar-mobile" style="width: 32px; height: 32px; background: <?php echo $_SESSION['role'] === 'accountant' ? '#16a34a' : '#6366f1'; ?>; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+        <i class="fas fa-user text-xs"></i>
+    </div>
+</div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<div class="sidebar" id="sidebar" style="background-color: <?php echo $_SESSION['role'] === 'accountant' ? '#0d542b' : '#312e81'; ?>">
     <div class="sidebar-brand">
         Invoice System
         <span>ABC Corp</span>
@@ -77,6 +138,7 @@
         <?php if ($_SESSION['role'] === 'admin'): ?>
             <a class="nav-link <?php echo $page_title === 'Customers' ? 'active' : ''; ?>" href="customers.php"><i class="fas fa-users"></i> Customers</a>
             <a class="nav-link <?php echo $page_title === 'Items' ? 'active' : ''; ?>" href="items.php"><i class="fas fa-box"></i> Items & Rates</a>
+            <a class="nav-link <?php echo $page_title === 'All Invoices' ? 'active' : ''; ?>" href="invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php elseif ($_SESSION['role'] === 'accountant'): ?>
             <a class="nav-link <?php echo $page_title === 'Create Invoice' ? 'active' : ''; ?>" href="create_invoice.php"><i class="fas fa-plus-circle"></i> Create Invoice</a>
             <a class="nav-link <?php echo $page_title === 'My Invoices' ? 'active' : ''; ?>" href="my_invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>

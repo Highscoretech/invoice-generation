@@ -48,6 +48,12 @@ if ($auth->isLoggedIn()) {
             border: none;
             font-size: 1.1rem;
         }
+
+        @media (max-width: 576px) {
+            .login-card {
+                padding: 30px 20px;
+            }
+        }
         
         .icon-circle {
             background: #6366f1;

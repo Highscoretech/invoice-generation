@@ -29,7 +29,7 @@ if (!$invoice) {
 }
 
 // Get invoice items
-$query = "SELECT ii.*, i.name as item_name, i.item_code, i.hsn_code, i.tax_rate as item_tax_rate
+$query = "SELECT ii.*, i.name as item_name, i.item_code, i.hsn_code, i.tax_rate as item_tax_rate, i.currency as item_currency
           FROM invoice_items ii 
           JOIN items i ON ii.item_id = i.id 
           WHERE ii.invoice_id = :invoice_id";
@@ -125,6 +125,8 @@ if ($_POST && $_POST['action'] === 'send_to_api') {
     }
 }
 
+$currency = !empty($invoice_items) ? ($invoice_items[0]['item_currency'] ?? 'USD') : 'USD';
+$sym = $currency === 'INR' ? '₹' : ($currency === 'EUR' ? '€' : ($currency === 'GBP' ? '£' : ($currency === 'NGN' ? '₦' : '$')));
 $page_title = 'Send to Government Portal';
 include 'includes/header.php';
 ?>
@@ -153,8 +155,8 @@ include 'includes/header.php';
                         <p><strong>Date:</strong> <?php echo date('M d, Y', strtotime($invoice['date'])); ?></p>
                     </div>
                     <div class="col-md-6">
-                        <p><strong>Total Amount:</strong> $<?php echo number_format($invoice['total_amount'], 2); ?></p>
-                        <p><strong>Tax Amount:</strong> $<?php echo number_format($invoice['tax_amount'], 2); ?></p>
+                        <p><strong>Total Amount:</strong> <?php echo $sym . number_format($invoice['total_amount'], 2); ?></p>
+                        <p><strong>Tax Amount:</strong> <?php echo $sym . number_format($invoice['tax_amount'], 2); ?></p>
                         <p><strong>Items Count:</strong> <?php echo count($invoice_items); ?></p>
                     </div>
                 </div>
@@ -174,9 +176,21 @@ include 'includes/header.php';
                             <?php foreach ($invoice_items as $item): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($item['item_name']); ?></td>
-                                <td><?php echo number_format($item['quantity'], 2); ?></td>
-                                <td>$<?php echo number_format($item['rate'], 2); ?></td>
-                                <td>$<?php echo number_format($item['amount'], 2); ?></td>
+                                <td><?php echo number_format($item['quantity'], 0); ?></td>
+                                <td>
+                                    <?php
+                                        $icur = $item['item_currency'] ?? $currency;
+                                        $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                                        echo $isym . number_format($item['rate'], 2);
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php
+                                        $icur = $item['item_currency'] ?? $currency;
+                                        $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                                        echo $isym . number_format($item['amount'], 2);
+                                    ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
