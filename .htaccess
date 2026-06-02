@@ -1,0 +1,13 @@
+# ── Protect sensitive files from being served over the web ───────────────────
+<FilesMatch "(^\.env|\.env$|\.sql$|\.txt$|composer\.(json|lock)$|README\.md$)">
+    Require all denied
+</FilesMatch>
+
+# Block direct web access to internal PHP libraries (they are include-only).
+RedirectMatch 403 ^/.*/(includes|config)/.*\.php$
+
+# Never expose dotfiles or the git directory.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+RedirectMatch 404 ^/\.git

@@ -53,7 +53,9 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'discount_amount' => $_POST['discount_amount'] ?? 0,
             'total_amount' => $_POST['total_amount'],
             'qr_url' => $qr_url,
-            'status' => 'verified'
+            // New invoices are drafts until they are actually verified by FIRS
+            // (FirsService promotes them to 'verified' on a successful transmit).
+            'status' => 'draft'
         ]);
         
         $invoice_id = $conn->lastInsertId();

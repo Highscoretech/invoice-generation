@@ -143,6 +143,12 @@
             <a class="nav-link <?php echo $page_title === 'Create Invoice' ? 'active' : ''; ?>" href="create_invoice.php"><i class="fas fa-plus-circle"></i> Create Invoice</a>
             <a class="nav-link <?php echo $page_title === 'My Invoices' ? 'active' : ''; ?>" href="my_invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php endif; ?>
+
+        <a class="nav-link <?php echo $page_title === 'API Documentation' ? 'active' : ''; ?>" href="api_docs.php"><i class="fas fa-code"></i> API Docs</a>
+        <a class="nav-link <?php echo $page_title === 'Service Level Agreement' ? 'active' : ''; ?>" href="sla.php"><i class="fas fa-shield-alt"></i> SLA</a>
+        <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+            <a class="nav-link <?php echo $page_title === 'Endpoint Coverage' ? 'active' : ''; ?>" href="endpoint_tests.php"><i class="fas fa-vial"></i> Endpoint Tests</a>
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">

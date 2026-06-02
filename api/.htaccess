@@ -1,0 +1,8 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # No RewriteBase: the rule is relative to this (api/) directory, so it works
+    # both at the domain root (production) and in a subfolder (local XAMPP).
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php?_route=$1 [QSA,L]
+</IfModule>

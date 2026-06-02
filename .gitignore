@@ -1,0 +1,12 @@
+# Secrets / environment — never commit
+.env
+.env.*
+NRS_e-invoice-_cryptographic_key.txt
+
+# Build / deploy artifacts
+einvoice_deploy.zip
+_*.php
+_*.sql
+
+# Logs
+*.log

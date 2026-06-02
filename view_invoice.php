@@ -11,9 +11,9 @@ $conn = $database->getConnection();
 $invoice_id = $_GET['id'] ?? 0;
 
 // Get invoice details
-$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.billing_address, c.billing_city, c.billing_state, c.billing_country, c.billing_postal_code,
-          comp.name as company_name, comp.email as company_email, comp.phone as company_phone, comp.address as company_address
-          FROM invoices i 
+$query = "SELECT i.*, c.name as customer_name, c.email as customer_email, c.tax_id as customer_tin, c.billing_address, c.billing_city, c.billing_state, c.billing_country, c.billing_postal_code,
+          comp.name as company_name, comp.email as company_email, comp.phone as company_phone, comp.address as company_address, comp.tin_number as company_tin
+          FROM invoices i
           JOIN customers c ON i.customer_id = c.id 
           JOIN companies comp ON i.company_id = comp.id
           WHERE i.id = :id AND i.company_id = :company_id";
@@ -67,7 +67,8 @@ include 'includes/header.php';
             <p>
                 <?php echo htmlspecialchars($invoice['company_address']); ?><br>
                 Email: <?php echo htmlspecialchars($invoice['company_email']); ?><br>
-                Phone: <?php echo htmlspecialchars($invoice['company_phone']); ?>
+                Phone: <?php echo htmlspecialchars($invoice['company_phone']); ?><br>
+                <?php if (!empty($invoice['company_tin'])): ?>TIN: <?php echo htmlspecialchars($invoice['company_tin']); ?><?php endif; ?>
             </p>
         </div>
         <div class="col-md-6 text-end">
@@ -79,12 +80,16 @@ include 'includes/header.php';
                     <strong>Due Date:</strong> <?php echo date('M d, Y', strtotime($invoice['due_date'])); ?><br>
                 <?php endif; ?>
             </p>
-            <?php if (!empty($invoice['qr_url']) && $invoice['api_status'] === 'success'): ?>
+            <?php if (!empty($invoice['irn'])): ?>
+                <p class="mb-1"><strong>IRN:</strong> <span style="font-size:0.8rem;"><?php echo htmlspecialchars($invoice['irn']); ?></span></p>
+            <?php endif; ?>
+            <?php if (!empty($invoice['qr_data'])): ?>
                 <div class="mt-2">
-                    <a href="<?php echo htmlspecialchars($invoice['qr_url']); ?>" target="_blank" title="Open QR URL">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=<?php echo urlencode($invoice['qr_url']); ?>" 
-                             alt="QR" width="120" height="120" style="border-radius:8px;">
-                    </a>
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=<?php echo urlencode($invoice['qr_data']); ?>"
+                         alt="FIRS QR" width="130" height="130" style="border-radius:8px;">
+                    <?php if (in_array($invoice['firs_status'] ?? '', ['signed', 'transmitted'], true)): ?>
+                        <div class="mt-1"><span class="badge bg-success"><i class="fas fa-check-circle"></i> FIRS Signed</span></div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -97,6 +102,7 @@ include 'includes/header.php';
             <h5>Bill To:</h5>
             <p>
                 <strong><?php echo htmlspecialchars($invoice['customer_name']); ?></strong><br>
+                <?php if (!empty($invoice['customer_tin'])): ?>TIN: <?php echo htmlspecialchars($invoice['customer_tin']); ?><br><?php endif; ?>
                 <?php echo htmlspecialchars($invoice['billing_address']); ?><br>
                 <?php echo htmlspecialchars($invoice['billing_city']); ?>, <?php echo htmlspecialchars($invoice['billing_state']); ?> <?php echo htmlspecialchars($invoice['billing_postal_code']); ?><br>
                 <?php echo htmlspecialchars($invoice['billing_country']); ?><br>
@@ -126,18 +132,19 @@ include 'includes/header.php';
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-6"><strong>API Status:</strong></div>
+                        <div class="col-6"><strong>FIRS Status:</strong></div>
                         <div class="col-6">
-                            <span class="badge bg-<?php 
-                                echo match($invoice['api_status']) {
-                                    'pending' => 'warning',
-                                    'sent' => 'info',
-                                    'success' => 'success',
+                            <?php $fs = $invoice['firs_status'] ?? 'not_sent'; ?>
+                            <span class="badge bg-<?php
+                                echo match($fs) {
+                                    'transmitted' => 'success',
+                                    'signed', 'validated' => 'info',
+                                    'queued_retry' => 'warning',
                                     'failed' => 'danger',
                                     default => 'secondary'
                                 };
                             ?>">
-                                <?php echo ucfirst($invoice['api_status']); ?>
+                                <?php echo strtoupper(str_replace('_', ' ', $fs)); ?>
                             </span>
                         </div>
                     </div>
