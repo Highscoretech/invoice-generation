@@ -21,19 +21,35 @@ class InvoicePayload
         return $c !== '' && strlen($c) === 2 ? $c : 'NG';
     }
 
+    /**
+     * First non-empty value. Unlike `??`, this also treats "" (and whitespace)
+     * as missing, so empty DB columns fall back to a valid default instead of
+     * being sent to FIRS as an empty required field.
+     */
+    private static function nz(...$vals): string
+    {
+        foreach ($vals as $v) {
+            $v = is_string($v) ? trim($v) : $v;
+            if ($v !== null && $v !== '') {
+                return (string) $v;
+            }
+        }
+        return '';
+    }
+
     private static function party(array $p): array
     {
         return [
-            'party_name'          => (string) ($p['name'] ?? ''),
-            'tin'                 => (string) ($p['tin'] ?? ''),
-            'email'               => (string) ($p['email'] ?? 'no-reply@example.com'),
-            'telephone'           => (string) ($p['phone'] ?? '+2348000000000'),
-            'business_description' => (string) ($p['description'] ?? 'General trade'),
+            'party_name'          => self::nz($p['name'] ?? '', 'N/A'),
+            'tin'                 => self::nz($p['tin'] ?? '', '00000000-0001'),
+            'email'               => self::nz($p['email'] ?? '', 'no-reply@example.com'),
+            'telephone'           => self::nz($p['phone'] ?? '', '+2348000000000'),
+            'business_description' => self::nz($p['description'] ?? '', 'General trade'),
             'postal_address'      => [
-                'street_name' => (string) ($p['address'] ?? 'N/A'),
-                'city_name'   => (string) ($p['city'] ?? 'Lagos'),
-                'postal_zone' => (string) ($p['postal_zone'] ?? '100001'),
-                'country'     => self::country($p['country'] ?? 'Nigeria'),
+                'street_name' => self::nz($p['address'] ?? '', 'N/A'),
+                'city_name'   => self::nz($p['city'] ?? '', 'Lagos'),
+                'postal_zone' => self::nz($p['postal_zone'] ?? '', '100001'),
+                'country'     => self::country(self::nz($p['country'] ?? '', 'Nigeria')),
             ],
         ];
     }
@@ -57,13 +73,13 @@ class InvoicePayload
         $lines = [];
         foreach ($items as $it) {
             $lines[] = [
-                'hsn_code'              => (string) ($it['hsn_code'] ?? 'CC-001'),
-                'product_category'      => (string) ($it['category'] ?? 'General'),
+                'hsn_code'              => self::nz($it['hsn_code'] ?? '', 'CC-001'),
+                'product_category'      => self::nz($it['category'] ?? '', 'General'),
                 'invoiced_quantity'     => (float) ($it['quantity'] ?? 1),
                 'line_extension_amount' => round((float) ($it['amount'] ?? 0), 2),
                 'item' => [
-                    'name'        => (string) ($it['item_name'] ?? $it['name'] ?? 'Item'),
-                    'description' => (string) ($it['description'] ?? $it['item_name'] ?? 'Item'),
+                    'name'        => self::nz($it['item_name'] ?? '', $it['name'] ?? '', 'Item'),
+                    'description' => self::nz($it['description'] ?? '', $it['item_name'] ?? '', $it['name'] ?? '', 'Item'),
                 ],
                 'price' => [
                     'price_amount'  => round((float) ($it['rate'] ?? 0), 2),

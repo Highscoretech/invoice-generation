@@ -294,8 +294,8 @@ include 'includes/header.php';
         </div>
         <div class="row row-gap text-start">
             <div class="col-12">
-                <label class="form-label">Description</label>
-                <textarea class="form-control" name="description" rows="3"><?php echo $item['description'] ?? ''; ?></textarea>
+                <label class="form-label">Description <span class="text-danger">*</span> <small class="text-muted">(required by FIRS)</small></label>
+                <textarea class="form-control" name="description" rows="3" required><?php echo $item['description'] ?? ''; ?></textarea>
             </div>
         </div>
 
