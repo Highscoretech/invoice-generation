@@ -37,10 +37,10 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         // submission. The note is encrypted at rest.
         require_once 'includes/Crypto.php';
         $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id,
-                  due_date, subtotal, tax_rate, tax_amount, discount_amount, total_amount, qr_url, status,
+                  due_date, subtotal, tax_rate, tax_amount, discount_amount, discount_rate, total_amount, qr_url, status,
                   invoice_type_code, payment_status, document_currency_code, tax_point_date, notes)
                   VALUES (:invoice_number, :date, :time, :customer_id, :company_id, :user_id,
-                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :total_amount, :qr_url, :status,
+                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :discount_rate, :total_amount, :qr_url, :status,
                   :invoice_type_code, :payment_status, :document_currency_code, :tax_point_date, :notes)";
 
         $stmt = $conn->prepare($query);
@@ -56,6 +56,9 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'tax_rate' => $_POST['tax_rate'],
             'tax_amount' => $_POST['tax_amount'],
             'discount_amount' => $_POST['discount_amount'] ?? 0,
+            // Derive the discount rate from the amount so both columns are stored.
+            'discount_rate' => (($_POST['subtotal'] ?? 0) > 0)
+                ? round((($_POST['discount_amount'] ?? 0) / $_POST['subtotal']) * 100, 2) : 0,
             'total_amount' => $_POST['total_amount'],
             'qr_url' => $qr_url,
             // New invoices are drafts until they are actually verified by FIRS

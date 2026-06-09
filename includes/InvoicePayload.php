@@ -104,9 +104,16 @@ class InvoicePayload
             ];
         }
 
-        $subtotal  = round((float) ($invoice['subtotal'] ?? 0), 2);
-        $taxAmount = round((float) ($invoice['tax_amount'] ?? 0), 2);
-        $total     = round((float) ($invoice['total_amount'] ?? ($subtotal + $taxAmount)), 2);
+        // Recompute consistently so the discount flows through correctly and the
+        // amounts always reconcile (FIRS validates this): tax is charged on the
+        // post-discount base.
+        $subtotal     = round((float) ($invoice['subtotal'] ?? 0), 2);            // sum of lines (pre-discount)
+        $discount     = round((float) ($invoice['discount_amount'] ?? 0), 2);
+        $discountRate = (float) ($invoice['discount_rate'] ?? 0);
+        $taxExclusive = round($subtotal - $discount, 2);
+        $taxAmount    = round($taxExclusive * $taxRate / 100, 2);
+        $taxInclusive = round($taxExclusive + $taxAmount, 2);
+        $total        = $taxInclusive;
 
         $payload = [
             'business_id'            => $businessId,
@@ -140,16 +147,18 @@ class InvoicePayload
                 'country' => $customer['billing_country'] ?? 'Nigeria',
             ]),
             'legal_monetary_total' => [
-                'line_extension_amount' => $subtotal,
-                'tax_exclusive_amount'  => $subtotal,
-                'tax_inclusive_amount'  => $total,
-                'payable_amount'        => $total,
+                'line_extension_amount'  => $subtotal,
+                'allowance_total_amount' => $discount,
+                'charge_total_amount'    => 0,
+                'tax_exclusive_amount'   => $taxExclusive,
+                'tax_inclusive_amount'   => $taxInclusive,
+                'payable_amount'         => $total,
             ],
             'invoice_line' => $lines,
             'tax_total'    => [[
                 'tax_amount'   => $taxAmount,
                 'tax_subtotal' => [[
-                    'taxable_amount' => $subtotal,
+                    'taxable_amount' => $taxExclusive,
                     'tax_amount'     => $taxAmount,
                     'tax_category'   => [
                         'id'      => 'STANDARD_VAT',
@@ -158,6 +167,17 @@ class InvoicePayload
                 ]],
             ]],
         ];
+
+        // Document-level discount (allowance). Only included when there is one.
+        if ($discount > 0) {
+            $payload['allowance_charge'] = [[
+                'charge_indicator'          => false, // false = allowance/discount
+                'allowance_charge_reason'   => 'Discount',
+                'amount'                    => $discount,
+                'multiplier_factor_numeric' => $discountRate,
+                'base_amount'               => $subtotal,
+            ]];
+        }
 
         // Optional FIRS fields — included only when present. tax_point_date
         // defaults to the issue date; note is decrypted from storage.
