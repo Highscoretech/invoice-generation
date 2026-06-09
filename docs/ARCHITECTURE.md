@@ -25,6 +25,24 @@ status, and automatically retries anything that fails for a transient reason.
                                               └─────────────┘
 ```
 
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Language / Runtime | PHP 8.3 |
+| Frontend | Server-rendered PHP views + Bootstrap 5 (no SPA framework) |
+| API | REST / JSON |
+| Database | MySQL / MariaDB (PDO) |
+| Web server | Apache (dev / XAMPP), LiteSpeed (production / cPanel) |
+| App authentication | PHP sessions + bcrypt password hashing |
+| Customer API authentication | API key/secret (`x-client-key` / `x-client-secret`), bcrypt-hashed |
+| FIRS authentication | `x-api-key` / `x-api-secret` headers |
+| Encryption | OpenSSL — AES-256-CBC (fields at rest), RSA/PKCS#1 (QR) |
+| Webhooks | HMAC-SHA256 signed callbacks |
+| Async / queue | Cron-driven retry queue (`retry_transmissions.php`) |
+| HTTP client | cURL |
+| Deployment | cPanel / LiteSpeed, FTP |
+
 ## 2. Components
 
 | Layer | Files | Responsibility |
