@@ -4,6 +4,20 @@ This document serves as a critical, living template designed to equip agents wit
 > A more detailed, narrative version of this architecture (data flows, pipeline
 > stages, retry policy, verification status) lives in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | PHP 8.3 server-rendered views + Bootstrap 5 |
+| Backend | PHP 8.3 |
+| API | REST / JSON |
+| Database | MySQL / MariaDB |
+| Authentication | PHP sessions + bcrypt (app); API key/secret, bcrypt (customers); `x-api-key`/`x-api-secret` (FIRS) |
+| Caching | None (database-backed retry queue) |
+| Messaging | Cron-driven retry queue (no external broker) |
+| Encryption | OpenSSL — AES-256-CBC (at rest), RSA/PKCS#1 (QR), HMAC-SHA256 (webhooks) |
+| Web server | Apache (dev / XAMPP), LiteSpeed (production / cPanel) |
+
 ## 1. Project Structure
 This section provides a high-level overview of the project's directory and file structure, categorised by architectural layer or major functional area. It is essential for quickly navigating the codebase, locating relevant files, and understanding the overall organization and separation of concerns.
 
