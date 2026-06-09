@@ -28,6 +28,169 @@ function respond(int $code, array $body): void
     exit;
 }
 
+/**
+ * Handle a POST /api/v1/invoices where the body IS a full FIRS BIS 3.0 payload
+ * (the same shape the middleware transmits to NRS). We persist tracking rows and
+ * store the payload verbatim, then run the normal validated/logged/retried
+ * pipeline — which injects only the server-generated irn / business_id / QR and
+ * transmits the stored object as-is. Always exits via respond().
+ */
+function respond_firs_invoice(PDO $conn, array $client, array $body): void
+{
+    // Idempotency key: an explicit `reference`, else derived deterministically
+    // from the payload so identical re-posts collapse to the same invoice.
+    $reference = trim((string) ($body['reference'] ?? ''));
+    if ($reference === '') {
+        $reference = 'firs_' . substr(hash('sha256', json_encode($body, JSON_UNESCAPED_SLASHES)), 0, 24);
+    }
+
+    $stmt = $conn->prepare("SELECT * FROM api_inbound_invoices WHERE api_client_id = :c AND external_reference = :r");
+    $stmt->execute([':c' => $client['id'], ':r' => $reference]);
+    if ($existing = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        respond(200, [
+            'reference'   => $reference,
+            'invoice_id'  => (int) $existing['invoice_id'],
+            'irn'         => $existing['irn'],
+            'firs_status' => $existing['status'],
+            'message'     => 'Already received (idempotent replay)',
+        ]);
+    }
+
+    $lines = $body['invoice_line'] ?? [];
+    if (!is_array($lines) || count($lines) === 0) {
+        respond(422, ['error' => 'validation_error', 'message' => 'invoice_line[] is required (at least one line)']);
+    }
+    $buyer = $body['accounting_customer_party'] ?? [];
+    if (empty($buyer['party_name'])) {
+        respond(422, ['error' => 'validation_error', 'message' => 'accounting_customer_party.party_name is required']);
+    }
+
+    // The exact object we will transmit (drop only our non-FIRS wrapper field).
+    $firsPayload = $body;
+    unset($firsPayload['reference']);
+
+    try {
+        $conn->beginTransaction();
+        $companyId = (int) $client['company_id'];
+
+        // Mirror the buyer into customers for listing/status (does not affect the
+        // transmitted payload, which keeps the party exactly as supplied).
+        $addr = $buyer['postal_address'] ?? [];
+        $cstmt = $conn->prepare("SELECT id FROM customers WHERE company_id = :co AND (tax_id = :tin AND :tin <> '' OR name = :name) LIMIT 1");
+        $cstmt->execute([':co' => $companyId, ':tin' => (string) ($buyer['tin'] ?? ''), ':name' => $buyer['party_name']]);
+        $customerId = $cstmt->fetchColumn();
+        if (!$customerId) {
+            $ins = $conn->prepare(
+                "INSERT INTO customers (company_id, name, tax_id, email, phone, address, billing_address, billing_city, billing_country, billing_postal_code)
+                 VALUES (:co, :name, :tin, :email, :phone, :addr, :addr, :city, :country, :zip)"
+            );
+            $ins->execute([
+                ':co' => $companyId, ':name' => $buyer['party_name'], ':tin' => $buyer['tin'] ?? '',
+                ':email' => $buyer['email'] ?? '', ':phone' => $buyer['telephone'] ?? '',
+                ':addr' => $addr['street_name'] ?? '', ':city' => $addr['city_name'] ?? '',
+                ':country' => $addr['country'] ?? 'NG', ':zip' => $addr['postal_zone'] ?? '',
+            ]);
+            $customerId = (int) $conn->lastInsertId();
+        }
+
+        // Totals from the FIRS monetary block (fall back to summing the lines).
+        $lmt = $body['legal_monetary_total'] ?? [];
+        $subtotal = (float) ($lmt['line_extension_amount'] ?? 0);
+        if ($subtotal <= 0) {
+            foreach ($lines as $ln) {
+                $subtotal += (float) ($ln['line_extension_amount'] ?? 0);
+            }
+        }
+        $taxAmount = 0.0;
+        foreach (($body['tax_total'] ?? []) as $tt) {
+            $taxAmount += (float) ($tt['tax_amount'] ?? 0);
+        }
+        $total    = (float) ($lmt['payable_amount'] ?? ($subtotal + $taxAmount));
+        $discount = (float) ($lmt['allowance_total_amount'] ?? 0);
+        $taxRate  = (float) ($body['tax_total'][0]['tax_subtotal'][0]['tax_category']['percent'] ?? 0);
+
+        $invoiceNumber = (string) ($body['invoice_number'] ?? $reference);
+        $date    = !empty($body['issue_date']) ? date('Y-m-d', strtotime($body['issue_date'])) : date('Y-m-d');
+        $time    = substr((string) ($body['issue_time'] ?? date('H:i:s')), 0, 8);
+        $dueDate = !empty($body['due_date']) ? date('Y-m-d', strtotime($body['due_date'])) : date('Y-m-d', strtotime('+30 days'));
+        $uid = (int) $conn->query("SELECT id FROM users WHERE company_id = {$companyId} ORDER BY id LIMIT 1")->fetchColumn();
+
+        $istmt = $conn->prepare(
+            "INSERT INTO invoices
+                (invoice_number, date, time, customer_id, company_id, user_id, due_date,
+                 subtotal, tax_rate, tax_amount, discount_amount, total_amount,
+                 invoice_type_code, payment_status, document_currency_code, status, firs_payload)
+             VALUES
+                (:num, :date, :time, :cust, :co, :uid, :due,
+                 :sub, :rate, :tax, :disc, :total,
+                 :itc, :pstat, :ccy, 'sent', :fp)"
+        );
+        $istmt->execute([
+            ':num' => $invoiceNumber, ':date' => $date, ':time' => $time, ':cust' => $customerId,
+            ':co' => $companyId, ':uid' => $uid, ':due' => $dueDate,
+            ':sub' => $subtotal, ':rate' => $taxRate, ':tax' => $taxAmount, ':disc' => $discount, ':total' => $total,
+            ':itc' => $body['invoice_type_code'] ?? '381', ':pstat' => $body['payment_status'] ?? 'PENDING',
+            ':ccy' => $body['document_currency_code'] ?? 'NGN',
+            ':fp' => json_encode($firsPayload, JSON_UNESCAPED_SLASHES),
+        ]);
+        $invoiceId = (int) $conn->lastInsertId();
+
+        foreach ($lines as $ln) {
+            $item  = $ln['item'] ?? [];
+            $price = $ln['price'] ?? [];
+            $qty   = (float) ($ln['invoiced_quantity'] ?? 1);
+            $rate  = (float) ($price['price_amount'] ?? 0);
+            $itemIns = $conn->prepare(
+                "INSERT INTO items (company_id, name, hsn_code, description, category, currency, tax_rate, selling_price)
+                 VALUES (:co, :name, :hsn, :desc, :cat, :ccy, :rate, :price)"
+            );
+            $itemIns->execute([
+                ':co' => $companyId, ':name' => $item['name'] ?? 'Item', ':hsn' => $ln['hsn_code'] ?? null,
+                ':desc' => $item['description'] ?? ($item['name'] ?? 'Item'), ':cat' => $ln['product_category'] ?? 'General',
+                ':ccy' => $body['document_currency_code'] ?? 'NGN', ':rate' => $taxRate, ':price' => $rate,
+            ]);
+            $itemId = (int) $conn->lastInsertId();
+            $liIns = $conn->prepare(
+                "INSERT INTO invoice_items (invoice_id, quantity, rate, amount, item_id)
+                 VALUES (:inv, :qty, :rate, :amount, :item)"
+            );
+            $liIns->execute([
+                ':inv' => $invoiceId, ':qty' => $qty, ':rate' => $rate,
+                ':amount' => (float) ($ln['line_extension_amount'] ?? round($qty * $rate, 2)), ':item' => $itemId,
+            ]);
+        }
+
+        $inbound = $conn->prepare(
+            "INSERT INTO api_inbound_invoices (api_client_id, external_reference, invoice_id, status, payload)
+             VALUES (:c, :r, :inv, 'received', :p)"
+        );
+        $inbound->execute([':c' => $client['id'], ':r' => $reference, ':inv' => $invoiceId, ':p' => json_encode($body, JSON_UNESCAPED_SLASHES)]);
+        $inboundId = (int) $conn->lastInsertId();
+
+        $conn->commit();
+    } catch (Throwable $e) {
+        if ($conn->inTransaction()) {
+            $conn->rollBack();
+        }
+        respond(500, ['error' => 'persist_failed', 'message' => $e->getMessage()]);
+    }
+
+    $result = (new FirsService($conn))->submit($invoiceId);
+    $conn->prepare("UPDATE api_inbound_invoices SET irn = :irn, status = :st WHERE id = :id")
+         ->execute([':irn' => $result['irn'], ':st' => $result['status'], ':id' => $inboundId]);
+
+    $httpCode = $result['ok'] ? 201 : ($result['status'] === 'queued_retry' ? 202 : 422);
+    respond($httpCode, [
+        'reference'   => $reference,
+        'invoice_id'  => $invoiceId,
+        'irn'         => $result['irn'],
+        'firs_status' => $result['status'],
+        'qr_present'  => $result['qr'] !== null,
+        'message'     => $result['message'],
+        'status_url'  => '/api/v1/invoices/' . rawurlencode($reference) . '/status',
+    ]);
+}
+
 $route  = trim($_GET['_route'] ?? '', '/');
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -104,6 +267,15 @@ if ($route === 'v1/invoices' && $method === 'POST') {
     $body = json_decode(file_get_contents('php://input'), true);
     if (!is_array($body)) {
         respond(400, ['error' => 'invalid_json']);
+    }
+
+    // ── FIRS BIS 3.0 payload (identical to what we transmit to NRS) ───────────
+    // Detected by the presence of FIRS-native structures. The customer sends the
+    // full invoice object; we record tracking rows, store the payload verbatim,
+    // and run the same pipeline — injecting only the server-generated
+    // irn / business_id / QR. So the object we send NRS == the object we received.
+    if (isset($body['invoice_line']) || isset($body['accounting_customer_party'])) {
+        respond_firs_invoice($conn, $client, $body);
     }
 
     $reference = (string) ($body['reference'] ?? '');

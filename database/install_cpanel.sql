@@ -328,3 +328,8 @@ ALTER TABLE invoices
     ADD COLUMN tax_point_date DATE NULL AFTER document_currency_code,
     ADD COLUMN discount_rate DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER discount_amount;
 
+-- ===== database/migration_api_payload.sql =====
+-- Exact FIRS payload supplied by an API caller (transmitted as-is to NRS).
+ALTER TABLE invoices
+    ADD COLUMN firs_payload MEDIUMTEXT NULL AFTER qr_data;
+

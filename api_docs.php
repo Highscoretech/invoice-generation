@@ -43,7 +43,9 @@ x-client-secret: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
     <p class="mt-2">Accept an invoice from a customer system. The app creates the invoice, builds the IRN,
         validates and signs it with FIRS, generates the signed QR, and transmits it. The call is
         <strong>idempotent</strong> on <code>reference</code> — replaying it never creates a duplicate.</p>
-    <strong>Request body</strong>
+    <p class="mb-1">The endpoint accepts <strong>either</strong> of two request bodies.</p>
+
+    <strong>Format A — simple</strong> (the app maps it to the FIRS payload for you)
     <pre>{
   "reference": "ACME-2001",              // your unique id (idempotency key) — required
   "invoice": { "number": "INV-ACME-2001", "date": "2026-06-02", "due_date": "2026-07-02" },
@@ -54,10 +56,55 @@ x-client-secret: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
     "address": "5 Marina", "city": "Lagos", "country": "Nigeria", "postal_zone": "100001"
   },
   "items": [                              // at least one required
-    { "name": "Consulting", "quantity": 2, "rate": 50000, "hsn_code": "CC-001", "category": "Services" }
+    { "name": "Consulting", "quantity": 2, "rate": 50000, "hsn_code": "8517.12", "category": "Services" }
   ],
   "tax_rate": 7.5
 }</pre>
+
+    <strong>Format B — full FIRS BIS 3.0 payload</strong> (the <em>exact</em> object we transmit to NRS).
+    Send the same structure the portal expects; the middleware injects only the
+    server-generated <code>irn</code>, <code>business_id</code> and signed QR, then transmits it as-is.
+    Detected automatically by the presence of <code>invoice_line</code> / <code>accounting_customer_party</code>.
+    Add an optional top-level <code>reference</code> for idempotency (else one is derived from the payload).
+    <pre>{
+  "reference": "ACME-2001",              // optional idempotency key
+  "issue_date": "2026-06-02",
+  "due_date": "2026-07-02",
+  "issue_time": "09:00:00",
+  "invoice_type_code": "381",
+  "payment_status": "PENDING",
+  "document_currency_code": "NGN",
+  "tax_currency_code": "NGN",
+  "accounting_supplier_party": {
+    "party_name": "Your Company Ltd", "tin": "23385763-7539", "email": "info@you.test",
+    "telephone": "+2348000000000", "business_description": "Software",
+    "postal_address": { "street_name": "123 Business St", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+  },
+  "accounting_customer_party": {
+    "party_name": "Acme Buyer Ltd", "tin": "12345678-0001", "email": "buyer@acme.test",
+    "telephone": "+2348111111111",
+    "postal_address": { "street_name": "5 Marina", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+  },
+  "legal_monetary_total": {
+    "line_extension_amount": 100000, "tax_exclusive_amount": 100000,
+    "tax_inclusive_amount": 107500, "payable_amount": 107500
+  },
+  "invoice_line": [
+    {
+      "hsn_code": "8517.12", "product_category": "General", "invoiced_quantity": 1,
+      "line_extension_amount": 100000,
+      "item": { "name": "Consulting", "description": "Consulting service" },
+      "price": { "price_amount": 100000, "base_quantity": 1, "price_unit": "NGN per 1" }
+    }
+  ],
+  "tax_total": [
+    { "tax_amount": 7500, "tax_subtotal": [
+      { "taxable_amount": 100000, "tax_amount": 7500,
+        "tax_category": { "id": "STANDARD_VAT", "percent": 7.5 } } ] }
+  ]
+}</pre>
+    <p class="text-muted">Note: <code>irn</code> and <code>business_id</code> are set by the server — anything you send for them is overwritten.</p>
+
     <strong>201 / 202</strong> (201 transmitted, 202 accepted &amp; queued for retry)
     <pre>{
   "reference": "ACME-2001",

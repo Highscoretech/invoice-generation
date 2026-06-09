@@ -67,7 +67,22 @@ class FirsService
         );
         $businessId = $this->client->getBusinessId();
 
-        $payload = InvoicePayload::build($invoice, $items, $company, $customer, $irn, $businessId);
+        // Payload source. When the caller supplied a full FIRS payload (via the
+        // customer API) we transmit exactly that object — only injecting the
+        // server-generated irn / business_id which the customer cannot know —
+        // so what we send to NRS is identical to what the customer sent us.
+        // Otherwise we build the payload from the invoice's DB rows as usual.
+        if (!empty($invoice['firs_payload'])) {
+            $payload = json_decode($invoice['firs_payload'], true);
+            if (!is_array($payload)) {
+                $payload = InvoicePayload::build($invoice, $items, $company, $customer, $irn, $businessId);
+            } else {
+                $payload['business_id'] = $businessId;
+                $payload['irn']         = $irn;
+            }
+        } else {
+            $payload = InvoicePayload::build($invoice, $items, $company, $customer, $irn, $businessId);
+        }
 
         $attempt = ((int) $invoice['transmit_attempts']) + 1;
         $this->touchAttempt($invoiceId, $irn, $businessId, $attempt);
