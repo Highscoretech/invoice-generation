@@ -129,6 +129,7 @@ Key columns: `id` PK; `item_code`; `company_id` **FK → companies(id)** CASCADE
 | irn | VARCHAR(120) | Invoice Reference Number (built from entity template) |
 | business_id | VARCHAR(64) | FIRS business UUID |
 | qr_data | MEDIUMTEXT | RSA-encrypted QR payload (base64) |
+| firs_payload | MEDIUMTEXT | Exact FIRS BIS 3.0 payload supplied via the API; transmitted to NRS verbatim (NULL when the payload is built from DB rows) |
 | firs_status | VARCHAR(32) DEFAULT 'not_sent' | `not_sent → validated → signed → transmitted` / `failed` / `queued_retry` |
 | validated_at, signed_at, transmitted_at | DATETIME | Stage timestamps (used for retry stage-gating) |
 | transmit_attempts | INT DEFAULT 0 | |
