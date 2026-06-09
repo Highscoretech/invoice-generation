@@ -58,7 +58,7 @@ $payload = [
     ],
     'legal_monetary_total' => ['line_extension_amount' => 100000, 'tax_exclusive_amount' => 100000, 'tax_inclusive_amount' => 107500, 'payable_amount' => 107500],
     'invoice_line' => [[
-        'hsn_code' => 'CC-001', 'product_category' => 'General', 'invoiced_quantity' => 1, 'line_extension_amount' => 100000,
+        'hsn_code' => '8517.12', 'product_category' => 'General', 'invoiced_quantity' => 1, 'line_extension_amount' => 100000,
         'item' => ['name' => 'Coverage Item', 'description' => 'Coverage Item'],
         'price' => ['price_amount' => 100000, 'base_quantity' => 1, 'price_unit' => 'NGN per 1'],
     ]],

@@ -1,6 +1,7 @@
 <?php
 require_once 'includes/auth.php';
 require_once 'config/database.php';
+require_once 'includes/Crypto.php';
 
 $auth = new Auth();
 $auth->requireLogin();
@@ -190,9 +191,10 @@ include 'includes/header.php';
     
     <div class="row">
         <div class="col-md-6">
-            <?php if ($invoice['notes']): ?>
+            <?php $note_plain = Crypto::decrypt($invoice['notes'] ?? null); ?>
+            <?php if (!empty($note_plain)): ?>
                 <h6>Notes:</h6>
-                <p><?php echo nl2br(htmlspecialchars($invoice['notes'])); ?></p>
+                <p><?php echo nl2br(htmlspecialchars($note_plain)); ?></p>
             <?php endif; ?>
         </div>
         <div class="col-md-6">

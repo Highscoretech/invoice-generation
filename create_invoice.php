@@ -32,12 +32,17 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         $invoice_number = 'INV-' . date('Y') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         $qr_url = 'https://example.com/invoice?no=' . urlencode($invoice_number);
         
-        // Insert invoice
-        $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id, 
-                  due_date, subtotal, tax_rate, tax_amount, discount_amount, total_amount, qr_url, status) 
-                  VALUES (:invoice_number, :date, :time, :customer_id, :company_id, :user_id, 
-                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :total_amount, :qr_url, :status)";
-        
+        // Insert invoice — includes the FIRS payload fields (with sensible
+        // defaults) so each invoice stores everything needed to build the
+        // submission. The note is encrypted at rest.
+        require_once 'includes/Crypto.php';
+        $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id,
+                  due_date, subtotal, tax_rate, tax_amount, discount_amount, total_amount, qr_url, status,
+                  invoice_type_code, payment_status, document_currency_code, tax_point_date, notes)
+                  VALUES (:invoice_number, :date, :time, :customer_id, :company_id, :user_id,
+                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :total_amount, :qr_url, :status,
+                  :invoice_type_code, :payment_status, :document_currency_code, :tax_point_date, :notes)";
+
         $stmt = $conn->prepare($query);
         $stmt->execute([
             'invoice_number' => $invoice_number,
@@ -55,7 +60,12 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'qr_url' => $qr_url,
             // New invoices are drafts until they are actually verified by FIRS
             // (FirsService promotes them to 'verified' on a successful transmit).
-            'status' => 'draft'
+            'status' => 'draft',
+            'invoice_type_code' => $_POST['invoice_type_code'] ?? '381',
+            'payment_status' => $_POST['payment_status'] ?? 'PENDING',
+            'document_currency_code' => $_POST['document_currency_code'] ?? 'NGN',
+            'tax_point_date' => !empty($_POST['tax_point_date']) ? $_POST['tax_point_date'] : null,
+            'notes' => !empty($_POST['notes']) ? Crypto::encrypt($_POST['notes']) : null,
         ]);
         
         $invoice_id = $conn->lastInsertId();
@@ -177,9 +187,61 @@ include 'includes/header.php';
                             </div>
                         </div>
                     </div>
+
+                    <hr>
+                    <h6 class="text-muted mb-3"><i class="fas fa-file-invoice"></i> FIRS Details</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Invoice Type</label>
+                                <select class="form-select" name="invoice_type_code">
+                                    <option value="381" selected>381 — Commercial Invoice</option>
+                                    <option value="380">380 — Credit Note</option>
+                                    <option value="384">384 — Debit Note</option>
+                                    <option value="385">385 — Self Billed Invoice</option>
+                                    <option value="390">390 — Proforma Invoice</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Currency</label>
+                                <select class="form-select" name="document_currency_code">
+                                    <option value="NGN" selected>NGN — Nigerian Naira</option>
+                                    <option value="USD">USD — US Dollar</option>
+                                    <option value="EUR">EUR — Euro</option>
+                                    <option value="GBP">GBP — British Pound</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Status</label>
+                                <select class="form-select" name="payment_status">
+                                    <option value="PENDING" selected>PENDING</option>
+                                    <option value="PAID">PAID</option>
+                                    <option value="PARTIALLY_PAID">PARTIALLY_PAID</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Tax Point Date <small class="text-muted">(optional)</small></label>
+                                <input type="date" class="form-control" name="tax_point_date">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label class="form-label">Note <small class="text-muted">(optional — stored encrypted)</small></label>
+                                <input type="text" class="form-control" name="notes" placeholder="Internal/FIRS note">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
+
             <div class="card mt-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5>Invoice Items</h5>

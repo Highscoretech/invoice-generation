@@ -8,6 +8,8 @@
  * Keep this file as the single source of truth for the wire format so the rest
  * of the app never has to know FIRS internals.
  */
+require_once __DIR__ . '/Crypto.php';
+
 class InvoicePayload
 {
     /** UN/CEFACT-ish country normalisation (FIRS expects ISO-2). */
@@ -37,6 +39,16 @@ class InvoicePayload
         return '';
     }
 
+    /**
+     * FIRS requires the HS/HSN code in dotted form (e.g. 8517.12). Anything that
+     * doesn't match falls back to 0000.00 so an invoice never fails on format.
+     */
+    private static function hsn($v): string
+    {
+        $v = trim((string) $v);
+        return preg_match('/^\d{4}\.\d{2,4}$/', $v) ? $v : '0000.00';
+    }
+
     private static function party(array $p): array
     {
         return [
@@ -64,7 +76,10 @@ class InvoicePayload
      */
     public static function build(array $invoice, array $items, array $company, array $customer, string $irn, string $businessId): array
     {
-        $currency = 'NGN'; // FIRS Nigeria settles in NGN
+        // These now come from the invoice row (with FIRS defaults as fallback).
+        $currency    = self::nz($invoice['document_currency_code'] ?? '', 'NGN');
+        $typeCode    = self::nz($invoice['invoice_type_code'] ?? '', '381'); // 381 = Commercial Invoice
+        $paymentStat = self::nz($invoice['payment_status'] ?? '', 'PENDING');
         $taxRate  = (float) ($invoice['tax_rate'] ?? 7.5);
         if ($taxRate <= 0) {
             $taxRate = 7.5;
@@ -73,7 +88,7 @@ class InvoicePayload
         $lines = [];
         foreach ($items as $it) {
             $lines[] = [
-                'hsn_code'              => self::nz($it['hsn_code'] ?? '', 'CC-001'),
+                'hsn_code'              => self::hsn($it['hsn_code'] ?? ''),
                 'product_category'      => self::nz($it['category'] ?? '', 'General'),
                 'invoiced_quantity'     => (float) ($it['quantity'] ?? 1),
                 'line_extension_amount' => round((float) ($it['amount'] ?? 0), 2),
@@ -93,14 +108,14 @@ class InvoicePayload
         $taxAmount = round((float) ($invoice['tax_amount'] ?? 0), 2);
         $total     = round((float) ($invoice['total_amount'] ?? ($subtotal + $taxAmount)), 2);
 
-        return [
+        $payload = [
             'business_id'            => $businessId,
             'irn'                    => $irn,
             'issue_date'             => date('Y-m-d', strtotime($invoice['date'] ?? 'now')),
             'due_date'               => !empty($invoice['due_date']) ? date('Y-m-d', strtotime($invoice['due_date'])) : date('Y-m-d', strtotime('+30 days')),
             'issue_time'             => substr((string) ($invoice['time'] ?? '09:00:00'), 0, 8),
-            'invoice_type_code'      => '381', // Commercial Invoice
-            'payment_status'         => 'PENDING',
+            'invoice_type_code'      => $typeCode,
+            'payment_status'         => $paymentStat,
             'document_currency_code' => $currency,
             'tax_currency_code'      => $currency,
             'accounting_supplier_party' => self::party([
@@ -143,5 +158,17 @@ class InvoicePayload
                 ]],
             ]],
         ];
+
+        // Optional FIRS fields — included only when present. tax_point_date
+        // defaults to the issue date; note is decrypted from storage.
+        $payload['tax_point_date'] = !empty($invoice['tax_point_date'])
+            ? date('Y-m-d', strtotime($invoice['tax_point_date']))
+            : $payload['issue_date'];
+        $note = Crypto::decrypt($invoice['notes'] ?? null);
+        if (self::nz((string) $note) !== '') {
+            $payload['note'] = $note;
+        }
+
+        return $payload;
     }
 }
