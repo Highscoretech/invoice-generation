@@ -32,20 +32,29 @@ status, and automatically retries anything that fails for a transient reason.
 | Config | `config/env.php`, `.env` | Load secrets/config; `.env` blocked from web by `.htaccess`. |
 | DB access | `config/database.php` | PDO connection. |
 | FIRS client | `includes/FirsClient.php` | Auth headers, entity lookup, IRN from template, validate/sign/transmit, RSA QR. |
-| Payload mapping | `includes/InvoicePayload.php` | DB rows → verified FIRS BIS 3.0 JSON. Single source of truth for the wire format. |
+| Payload mapping | `includes/InvoicePayload.php` | DB rows → verified FIRS BIS 3.0 JSON. Single source of truth for the wire format. Never emits empty required fields; enforces HSN format; applies discount as `allowance_charge`. |
+| Encryption | `includes/Crypto.php` | AES-256-CBC for fields stored at rest (invoice note). |
 | Orchestrator | `includes/FirsService.php` | Pipeline (validate→sign→QR→transmit), logging, status, retry policy. |
-| Retry runner | `retry_transmissions.php` | Cron entry point; re-runs due retries. |
+| Retry runner | `retry_transmissions.php` | Cron entry point; re-runs due retries + confirm polls + webhook resends. |
 | Customer API | `api/index.php`, `includes/ApiAuth.php` | Accept invoices, return status; API-key auth (bcrypt secrets). |
 | Webhooks | `api/index.php` (inbound route), `includes/WebhookDispatcher.php` | Receive FIRS push events; send HMAC-signed status callbacks to customers. |
 | Provisioning | `provision_api_client.php` | Create API clients (CLI). |
-| UI | `send_to_api.php`, `view_invoice.php`, `api_docs.php`, `sla.php` | Operator screens + docs. |
+| UI | `send_to_api.php`, `view_invoice.php`, `api_docs.php`, `sla.php`, `endpoint_tests.php` | Operator screens, docs, SLA, live endpoint coverage. |
 
 ## 3. Data model (additions)
 
-- **invoices** — added `irn`, `business_id`, `qr_data` (RSA QR payload),
-  `firs_status` (`not_sent → validated → signed → transmitted | failed |
-  queued_retry`), `validated_at`, `signed_at`, `transmitted_at`,
-  `transmit_attempts`, `last_attempt_at`, `next_retry_at`, `last_error`.
+- **invoices** — added:
+  - *FIRS lifecycle*: `irn`, `business_id`, `qr_data` (RSA QR payload),
+    `firs_status` (`not_sent → validated → signed → transmitted | failed |
+    queued_retry`), `validated_at`, `signed_at`, `transmitted_at`,
+    `transmit_attempts`, `last_attempt_at`, `next_retry_at`, `last_error`,
+    `delivered`, `entry_status`, `confirmed_at`.
+  - *Payload fields* (so each invoice stores everything needed to build the
+    submission): `invoice_type_code` (default 381), `payment_status`
+    (PENDING), `document_currency_code` (NGN), `tax_point_date`,
+    `discount_rate` (with the existing `discount_amount`).
+  - `notes` is **encrypted at rest** (AES-256) via `Crypto`, decrypted only when
+    building the payload / displaying.
 - **firs_transmissions** — append-only audit log: one row per portal call
   (`stage`, `attempt`, `http_code`, `status`, full request + response).
 - **api_clients** — customer API credentials (`api_key`, bcrypt `api_secret_hash`,
@@ -97,15 +106,18 @@ job `retry_transmissions.php` drains the due queue.
 - FIRS credentials in `.env`, denied web access via `.htaccess`; internal
   `includes/` and `config/` PHP blocked from direct access.
 - Customer API secrets and user passwords stored as **bcrypt** hashes only.
+- Sensitive invoice fields (note) encrypted at rest with **AES-256-CBC** (`Crypto`).
 - QR payloads RSA-encrypted with the FIRS public key per the QR-code spec.
+- Inbound/outbound webhooks authenticated by HMAC-SHA256 (shared secret).
 - Idempotency keys prevent duplicate submissions.
 
 ## 7. Deployment (cPanel)
 
-1. Upload to `public_html/einvoice`.
-2. Import `database/schema.sql` then `database/migration_firs.sql`.
+1. Upload the app to the domain's document root.
+2. Import `database/install_cpanel.sql` (complete schema), or apply
+   `schema.sql` then the migrations in order.
 3. Set real values in `.env` (`FIRS_API_KEY`, `FIRS_API_SECRET`,
-   `FIRS_BUSINESS_ID`, `FIRS_ENTITY_ID`).
+   `FIRS_BUSINESS_ID`, `FIRS_ENTITY_ID`, `DB_*`).
 4. Add cron: `*/5 * * * * php /home/USER/public_html/einvoice/retry_transmissions.php`.
 5. Provision customer API clients with `provision_api_client.php`.
 
