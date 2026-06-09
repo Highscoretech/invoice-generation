@@ -131,6 +131,3 @@ job `retry_transmissions.php` drains the due queue.
 | `POST /api/v1/invoice/sign` | ✅ 201 `{ok:true}` |
 | `POST /api/v1/invoice/transmit/{IRN}` | ⚠️ portal access points offline in sandbox → exercised retry path |
 | Customer API (accept/status/idempotency/auth) | ✅ verified locally |
-
-Transmit depends on the FIRS test access point, which is currently offline;
-the middleware correctly logs and re-queues those attempts.
