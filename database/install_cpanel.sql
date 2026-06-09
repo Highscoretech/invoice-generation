@@ -1,5 +1,5 @@
--- Combined cPanel install: run AFTER creating the DB in cPanel and selecting it in phpMyAdmin.
--- Order: schema -> firs migration -> webhooks migration.
+-- Combined cPanel install: run AFTER creating the DB and selecting it in phpMyAdmin.
+-- Complete schema = base + FIRS + webhooks + invoice payload fields.
 
 -- ===== database/schema.sql =====
 
@@ -192,21 +192,21 @@ INSERT INTO users (company_id, username, email, password, first_name, last_name,
 
 -- Per-invoice FIRS fields -----------------------------------------------------
 ALTER TABLE invoices
-    ADD COLUMN IF NOT EXISTS irn VARCHAR(120) NULL AFTER invoice_number,
-    ADD COLUMN IF NOT EXISTS business_id VARCHAR(64) NULL,
-    ADD COLUMN IF NOT EXISTS qr_data MEDIUMTEXT NULL,            -- RSA-encrypted QR payload (base64)
-    ADD COLUMN IF NOT EXISTS firs_status VARCHAR(32) NOT NULL DEFAULT 'not_sent',
+    ADD COLUMN irn VARCHAR(120) NULL AFTER invoice_number,
+    ADD COLUMN business_id VARCHAR(64) NULL,
+    ADD COLUMN qr_data MEDIUMTEXT NULL,            -- RSA-encrypted QR payload (base64)
+    ADD COLUMN firs_status VARCHAR(32) NOT NULL DEFAULT 'not_sent',
         -- not_sent | validated | signed | transmitted | failed | queued_retry
-    ADD COLUMN IF NOT EXISTS validated_at  DATETIME NULL,
-    ADD COLUMN IF NOT EXISTS signed_at     DATETIME NULL,
-    ADD COLUMN IF NOT EXISTS transmitted_at DATETIME NULL,
-    ADD COLUMN IF NOT EXISTS transmit_attempts INT NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS last_attempt_at DATETIME NULL,
-    ADD COLUMN IF NOT EXISTS next_retry_at DATETIME NULL,        -- set when queued for retry
-    ADD COLUMN IF NOT EXISTS last_error VARCHAR(500) NULL;
+    ADD COLUMN validated_at  DATETIME NULL,
+    ADD COLUMN signed_at     DATETIME NULL,
+    ADD COLUMN transmitted_at DATETIME NULL,
+    ADD COLUMN transmit_attempts INT NOT NULL DEFAULT 0,
+    ADD COLUMN last_attempt_at DATETIME NULL,
+    ADD COLUMN next_retry_at DATETIME NULL,        -- set when queued for retry
+    ADD COLUMN last_error VARCHAR(500) NULL;
 
-CREATE INDEX IF NOT EXISTS idx_invoices_next_retry ON invoices (next_retry_at);
-CREATE INDEX IF NOT EXISTS idx_invoices_firs_status ON invoices (firs_status);
+CREATE INDEX idx_invoices_next_retry ON invoices (next_retry_at);
+CREATE INDEX idx_invoices_firs_status ON invoices (firs_status);
 
 -- Full audit log of every call to the portal -----------------------------------
 CREATE TABLE IF NOT EXISTS firs_transmissions (
@@ -269,13 +269,13 @@ UPDATE companies SET tin_number = '23385763-7539', country = 'Nigeria'
 
 -- Confirm/poll status fields on the invoice -----------------------------------
 ALTER TABLE invoices
-    ADD COLUMN IF NOT EXISTS delivered TINYINT(1) NOT NULL DEFAULT 0,
-    ADD COLUMN IF NOT EXISTS entry_status VARCHAR(40) NULL,   -- e.g. NEW_ENTRY, TRANSMITTED, DELIVERED, REJECTED
-    ADD COLUMN IF NOT EXISTS confirmed_at DATETIME NULL;      -- last time we polled /confirm
+    ADD COLUMN delivered TINYINT(1) NOT NULL DEFAULT 0,
+    ADD COLUMN entry_status VARCHAR(40) NULL,   -- e.g. NEW_ENTRY, TRANSMITTED, DELIVERED, REJECTED
+    ADD COLUMN confirmed_at DATETIME NULL;      -- last time we polled /confirm
 
 -- Secret used to HMAC-sign outbound webhooks to the customer (shared with them).
 ALTER TABLE api_clients
-    ADD COLUMN IF NOT EXISTS webhook_secret VARCHAR(80) NULL;
+    ADD COLUMN webhook_secret VARCHAR(80) NULL;
 
 -- Inbound: every event FIRS posts to our receiver, raw, for audit + replay.
 CREATE TABLE IF NOT EXISTS firs_webhook_events (
@@ -313,4 +313,18 @@ CREATE TABLE IF NOT EXISTS webhook_deliveries (
 UPDATE api_clients
    SET webhook_secret = CONCAT('whsec_', SHA2(CONCAT(api_key, RAND()), 256))
  WHERE webhook_secret IS NULL OR webhook_secret = '';
+
+-- ===== database/migration_invoice_fields.sql =====
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Persist FIRS payload fields on the invoice (instead of hardcoding them in the
+-- payload builder). Idempotent (MariaDB IF NOT EXISTS).
+-- The `notes` column already exists and is now stored encrypted at rest.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE invoices
+    ADD COLUMN invoice_type_code VARCHAR(10) NOT NULL DEFAULT '381' AFTER total_amount,
+    ADD COLUMN payment_status VARCHAR(20) NOT NULL DEFAULT 'PENDING' AFTER invoice_type_code,
+    ADD COLUMN document_currency_code VARCHAR(10) NOT NULL DEFAULT 'NGN' AFTER payment_status,
+    ADD COLUMN tax_point_date DATE NULL AFTER document_currency_code,
+    ADD COLUMN discount_rate DECIMAL(5,2) NOT NULL DEFAULT 0 AFTER discount_amount;
 
