@@ -1,7 +1,7 @@
 <?php
+// Public page — accessible without logging in (NRS requirement). The auth
+// include only starts the session so the shared layout can detect staff users.
 require_once 'includes/auth.php';
-$auth = new Auth();
-$auth->requireLogin();
 $page_title = 'API Documentation';
 include 'includes/header.php';
 

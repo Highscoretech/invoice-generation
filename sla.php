@@ -1,8 +1,8 @@
 <?php
+// Public page — accessible without logging in (NRS requirement). The auth
+// include only starts the session so the shared layout can detect staff users.
 require_once 'includes/auth.php';
 require_once 'config/database.php';
-$auth = new Auth();
-$auth->requireLogin();
 $page_title = 'Service Level Agreement';
 
 // Live operational numbers from the transmission log so the SLA page reflects

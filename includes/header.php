@@ -1,3 +1,9 @@
+<?php
+// Public pages (API docs, SLA) include this layout without a login. Derive the
+// auth state once so the chrome renders cleanly for anonymous visitors too.
+$is_authed = isset($_SESSION['user_id']);
+$role = $_SESSION['role'] ?? '';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,7 +124,7 @@
         <i class="fas fa-bars fa-lg"></i>
     </button>
     <div class="fw-bold">Invoice System</div>
-    <div class="user-avatar-mobile" style="width: 32px; height: 32px; background: <?php echo $_SESSION['role'] === 'accountant' ? '#16a34a' : '#6366f1'; ?>; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+    <div class="user-avatar-mobile" style="width: 32px; height: 32px; background: <?php echo $role === 'accountant' ? '#16a34a' : '#6366f1'; ?>; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
         <i class="fas fa-user text-xs"></i>
     </div>
 </div>
@@ -126,40 +132,46 @@
 <!-- Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<div class="sidebar" id="sidebar" style="background-color: <?php echo $_SESSION['role'] === 'accountant' ? '#0d542b' : '#312e81'; ?>">
+<div class="sidebar" id="sidebar" style="background-color: <?php echo $role === 'accountant' ? '#0d542b' : '#312e81'; ?>">
     <div class="sidebar-brand">
         Invoice System
         <span>ABC Corp</span>
     </div>
     
     <nav class="nav flex-column">
+        <?php if ($is_authed): ?>
         <a class="nav-link <?php echo $page_title === 'Dashboard' ? 'active' : ''; ?>" href="dashboard.php"><i class="fas fa-th-large"></i> Dashboard</a>
-        
-        <?php if ($_SESSION['role'] === 'admin'): ?>
+        <?php endif; ?>
+
+        <?php if ($role === 'admin'): ?>
             <a class="nav-link <?php echo $page_title === 'Customers' ? 'active' : ''; ?>" href="customers.php"><i class="fas fa-users"></i> Customers</a>
             <a class="nav-link <?php echo $page_title === 'Items' ? 'active' : ''; ?>" href="items.php"><i class="fas fa-box"></i> Items & Rates</a>
             <a class="nav-link <?php echo $page_title === 'All Invoices' ? 'active' : ''; ?>" href="invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
-        <?php elseif ($_SESSION['role'] === 'accountant'): ?>
+        <?php elseif ($role === 'accountant'): ?>
             <a class="nav-link <?php echo $page_title === 'Create Invoice' ? 'active' : ''; ?>" href="create_invoice.php"><i class="fas fa-plus-circle"></i> Create Invoice</a>
             <a class="nav-link <?php echo $page_title === 'My Invoices' ? 'active' : ''; ?>" href="my_invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php endif; ?>
 
         <a class="nav-link <?php echo $page_title === 'API Documentation' ? 'active' : ''; ?>" href="api_docs.php"><i class="fas fa-code"></i> API Docs</a>
         <a class="nav-link <?php echo $page_title === 'Service Level Agreement' ? 'active' : ''; ?>" href="sla.php"><i class="fas fa-shield-alt"></i> SLA</a>
-        <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
+        <?php if ($role === 'admin'): ?>
             <a class="nav-link <?php echo $page_title === 'Endpoint Coverage' ? 'active' : ''; ?>" href="endpoint_tests.php"><i class="fas fa-vial"></i> Endpoint Tests</a>
         <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
+        <?php if ($is_authed): ?>
         <div class="user-info">
-            <div class="user-avatar" style="background: <?php echo $_SESSION['role'] === 'accountant' ? '#16a34a' : '#6366f1'; ?>"><i class="fas fa-user"></i></div>
+            <div class="user-avatar" style="background: <?php echo $role === 'accountant' ? '#16a34a' : '#6366f1'; ?>"><i class="fas fa-user"></i></div>
             <div>
                 <div class="small fw-bold"><?php echo $_SESSION['username'] ?? 'admin'; ?></div>
-                <div class="small text-white-50"><?php echo ucfirst($_SESSION['role'] ?? 'Admin'); ?></div>
+                <div class="small text-white-50"><?php echo ucfirst($role ?: 'Admin'); ?></div>
             </div>
         </div>
         <a href="logout.php" class="btn btn-outline-light btn-sm w-100"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        <?php else: ?>
+        <a href="login.php" class="btn btn-outline-light btn-sm w-100"><i class="fas fa-sign-in-alt"></i> Staff Login</a>
+        <?php endif; ?>
     </div>
 </div>
 
