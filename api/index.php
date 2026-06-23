@@ -115,22 +115,41 @@ function respond_firs_invoice(PDO $conn, array $client, array $body): void
         $dueDate = !empty($body['due_date']) ? date('Y-m-d', strtotime($body['due_date'])) : date('Y-m-d', strtotime('+30 days'));
         $uid = (int) $conn->query("SELECT id FROM users WHERE company_id = {$companyId} ORDER BY id LIMIT 1")->fetchColumn();
 
+        // Full FIRS monetary breakdown — prefer the values supplied in the
+        // payload's legal_monetary_total, else derive them.
+        $taxExcl = (float) ($lmt['tax_exclusive_amount'] ?? round($subtotal - $discount, 2));
+        $taxIncl = (float) ($lmt['tax_inclusive_amount'] ?? round($taxExcl + $taxAmount, 2));
+        $charge  = (float) ($lmt['charge_total_amount'] ?? 0);
+        $taxCatId = $body['tax_total'][0]['tax_subtotal'][0]['tax_category']['id'] ?? 'STANDARD_VAT';
+        $ccy = $body['document_currency_code'] ?? 'NGN';
+        $allowReason = null;
+        foreach (($body['allowance_charge'] ?? []) as $ac) {
+            if (($ac['charge_indicator'] ?? true) === false) { $allowReason = $ac['allowance_charge_reason'] ?? 'Discount'; break; }
+        }
+        if ($allowReason === null && $discount > 0) { $allowReason = 'Discount'; }
+
         $istmt = $conn->prepare(
             "INSERT INTO invoices
                 (invoice_number, date, time, customer_id, company_id, user_id, due_date,
-                 subtotal, tax_rate, tax_amount, discount_amount, total_amount,
-                 invoice_type_code, payment_status, document_currency_code, status, firs_payload)
+                 subtotal, line_extension_amount, tax_rate, tax_category_id, tax_amount,
+                 discount_amount, allowance_total_amount, allowance_charge_reason, charge_total_amount,
+                 tax_exclusive_amount, tax_inclusive_amount, total_amount, payable_amount,
+                 invoice_type_code, payment_status, document_currency_code, tax_currency_code, status, firs_payload)
              VALUES
                 (:num, :date, :time, :cust, :co, :uid, :due,
-                 :sub, :rate, :tax, :disc, :total,
-                 :itc, :pstat, :ccy, 'sent', :fp)"
+                 :sub, :lea, :rate, :tcid, :tax,
+                 :disc, :allow, :areason, :charge,
+                 :texcl, :tincl, :total, :payable,
+                 :itc, :pstat, :ccy, :tccy, 'sent', :fp)"
         );
         $istmt->execute([
             ':num' => $invoiceNumber, ':date' => $date, ':time' => $time, ':cust' => $customerId,
             ':co' => $companyId, ':uid' => $uid, ':due' => $dueDate,
-            ':sub' => $subtotal, ':rate' => $taxRate, ':tax' => $taxAmount, ':disc' => $discount, ':total' => $total,
+            ':sub' => $subtotal, ':lea' => $subtotal, ':rate' => $taxRate, ':tcid' => $taxCatId, ':tax' => $taxAmount,
+            ':disc' => $discount, ':allow' => $discount, ':areason' => $allowReason, ':charge' => $charge,
+            ':texcl' => $taxExcl, ':tincl' => $taxIncl, ':total' => $total, ':payable' => $total,
             ':itc' => $body['invoice_type_code'] ?? '381', ':pstat' => $body['payment_status'] ?? 'PENDING',
-            ':ccy' => $body['document_currency_code'] ?? 'NGN',
+            ':ccy' => $ccy, ':tccy' => $body['tax_currency_code'] ?? $ccy,
             ':fp' => json_encode($firsPayload, JSON_UNESCAPED_SLASHES),
         ]);
         $invoiceId = (int) $conn->lastInsertId();
@@ -338,15 +357,26 @@ if ($route === 'v1/invoices' && $method === 'POST') {
         $dueDate = $body['invoice']['due_date'] ?? date('Y-m-d', strtotime('+30 days'));
 
         $istmt = $conn->prepare(
-            "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id, due_date, subtotal, tax_rate, tax_amount, total_amount, status)
-             VALUES (:num, :date, :time, :cust, :co, :uid, :due, :sub, :rate, :tax, :total, 'sent')"
+            "INSERT INTO invoices
+                (invoice_number, date, time, customer_id, company_id, user_id, due_date,
+                 subtotal, line_extension_amount, tax_rate, tax_category_id, tax_amount,
+                 discount_amount, allowance_total_amount, charge_total_amount,
+                 tax_exclusive_amount, tax_inclusive_amount, total_amount, payable_amount,
+                 document_currency_code, tax_currency_code, status)
+             VALUES
+                (:num, :date, :time, :cust, :co, :uid, :due,
+                 :sub, :lea, :rate, :tcid, :tax,
+                 0, 0, 0,
+                 :texcl, :tincl, :total, :payable,
+                 'NGN', 'NGN', 'sent')"
         );
         // user_id: first user of the company (API submissions are system-originated).
         $uid = (int) $conn->query("SELECT id FROM users WHERE company_id = {$companyId} ORDER BY id LIMIT 1")->fetchColumn();
         $istmt->execute([
             ':num' => $invoiceNumber, ':date' => $date, ':time' => date('H:i:s'), ':cust' => $customerId,
             ':co' => $companyId, ':uid' => $uid, ':due' => $dueDate, ':sub' => $subtotal,
-            ':rate' => $taxRate, ':tax' => $taxAmount, ':total' => $total,
+            ':lea' => $subtotal, ':rate' => $taxRate, ':tcid' => 'STANDARD_VAT', ':tax' => $taxAmount,
+            ':texcl' => $subtotal, ':tincl' => $total, ':total' => $total, ':payable' => $total,
         ]);
         $invoiceId = (int) $conn->lastInsertId();
 

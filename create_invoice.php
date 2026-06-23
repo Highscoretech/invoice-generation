@@ -36,12 +36,26 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         // defaults) so each invoice stores everything needed to build the
         // submission. The note is encrypted at rest.
         require_once 'includes/Crypto.php';
+
+        // Derive the full FIRS monetary breakdown so every API field is stored
+        // (tax is charged on the post-discount base, matching InvoicePayload).
+        $cSubtotal  = (float) ($_POST['subtotal'] ?? 0);
+        $cDiscount  = (float) ($_POST['discount_amount'] ?? 0);
+        $cTaxAmount = (float) ($_POST['tax_amount'] ?? 0);
+        $cTaxExcl   = round($cSubtotal - $cDiscount, 2);
+        $cTaxIncl   = round($cTaxExcl + $cTaxAmount, 2);
+        $cCurrency  = $_POST['document_currency_code'] ?? 'NGN';
+
         $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id,
-                  due_date, subtotal, tax_rate, tax_amount, discount_amount, discount_rate, total_amount, qr_url, status,
-                  invoice_type_code, payment_status, document_currency_code, tax_point_date, notes)
+                  due_date, subtotal, line_extension_amount, tax_rate, tax_category_id, tax_amount,
+                  discount_amount, discount_rate, allowance_total_amount, allowance_charge_reason, charge_total_amount,
+                  tax_exclusive_amount, tax_inclusive_amount, total_amount, payable_amount, qr_url, status,
+                  invoice_type_code, payment_status, document_currency_code, tax_currency_code, tax_point_date, notes)
                   VALUES (:invoice_number, :date, :time, :customer_id, :company_id, :user_id,
-                  :due_date, :subtotal, :tax_rate, :tax_amount, :discount_amount, :discount_rate, :total_amount, :qr_url, :status,
-                  :invoice_type_code, :payment_status, :document_currency_code, :tax_point_date, :notes)";
+                  :due_date, :subtotal, :line_extension_amount, :tax_rate, :tax_category_id, :tax_amount,
+                  :discount_amount, :discount_rate, :allowance_total_amount, :allowance_charge_reason, :charge_total_amount,
+                  :tax_exclusive_amount, :tax_inclusive_amount, :total_amount, :payable_amount, :qr_url, :status,
+                  :invoice_type_code, :payment_status, :document_currency_code, :tax_currency_code, :tax_point_date, :notes)";
 
         $stmt = $conn->prepare($query);
         $stmt->execute([
@@ -52,21 +66,29 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'company_id' => $_SESSION['company_id'],
             'user_id' => $_SESSION['user_id'],
             'due_date' => $_POST['due_date'],
-            'subtotal' => $_POST['subtotal'],
+            'subtotal' => $cSubtotal,
+            'line_extension_amount' => $cSubtotal,
             'tax_rate' => $_POST['tax_rate'],
-            'tax_amount' => $_POST['tax_amount'],
-            'discount_amount' => $_POST['discount_amount'] ?? 0,
+            'tax_category_id' => 'STANDARD_VAT',
+            'tax_amount' => $cTaxAmount,
+            'discount_amount' => $cDiscount,
             // Derive the discount rate from the amount so both columns are stored.
-            'discount_rate' => (($_POST['subtotal'] ?? 0) > 0)
-                ? round((($_POST['discount_amount'] ?? 0) / $_POST['subtotal']) * 100, 2) : 0,
+            'discount_rate' => ($cSubtotal > 0) ? round(($cDiscount / $cSubtotal) * 100, 2) : 0,
+            'allowance_total_amount' => $cDiscount,
+            'allowance_charge_reason' => $cDiscount > 0 ? 'Discount' : null,
+            'charge_total_amount' => 0,
+            'tax_exclusive_amount' => $cTaxExcl,
+            'tax_inclusive_amount' => $cTaxIncl,
             'total_amount' => $_POST['total_amount'],
+            'payable_amount' => $_POST['total_amount'],
             'qr_url' => $qr_url,
             // New invoices are drafts until they are actually verified by FIRS
             // (FirsService promotes them to 'verified' on a successful transmit).
             'status' => 'draft',
             'invoice_type_code' => $_POST['invoice_type_code'] ?? '381',
             'payment_status' => $_POST['payment_status'] ?? 'PENDING',
-            'document_currency_code' => $_POST['document_currency_code'] ?? 'NGN',
+            'document_currency_code' => $cCurrency,
+            'tax_currency_code' => $cCurrency,
             'tax_point_date' => !empty($_POST['tax_point_date']) ? $_POST['tax_point_date'] : null,
             'notes' => !empty($_POST['notes']) ? Crypto::encrypt($_POST['notes']) : null,
         ]);

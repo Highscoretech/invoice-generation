@@ -333,3 +333,16 @@ ALTER TABLE invoices
 ALTER TABLE invoices
     ADD COLUMN firs_payload MEDIUMTEXT NULL AFTER qr_data;
 
+-- ===== database/migration_firs_invoice_columns.sql =====
+-- Every header-level FIRS invoice field as a first-class column (incl. optional).
+ALTER TABLE invoices
+    ADD COLUMN tax_currency_code       VARCHAR(10)    NOT NULL DEFAULT 'NGN'          AFTER document_currency_code,
+    ADD COLUMN line_extension_amount   DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER subtotal,
+    ADD COLUMN allowance_total_amount  DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER discount_amount,
+    ADD COLUMN charge_total_amount     DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER allowance_total_amount,
+    ADD COLUMN tax_exclusive_amount    DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER charge_total_amount,
+    ADD COLUMN tax_inclusive_amount    DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER tax_exclusive_amount,
+    ADD COLUMN payable_amount          DECIMAL(15,2)  NOT NULL DEFAULT 0              AFTER total_amount,
+    ADD COLUMN tax_category_id         VARCHAR(40)    NOT NULL DEFAULT 'STANDARD_VAT' AFTER tax_rate,
+    ADD COLUMN allowance_charge_reason VARCHAR(255)   NULL                            AFTER allowance_total_amount;
+

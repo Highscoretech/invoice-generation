@@ -150,8 +150,23 @@ Key columns: `id` PK; `item_code`; `company_id` **FK → companies(id)** CASCADE
 | invoice_type_code | VARCHAR(10) DEFAULT '381' | 381 = Commercial Invoice |
 | payment_status | VARCHAR(20) DEFAULT 'PENDING' | |
 | document_currency_code | VARCHAR(10) DEFAULT 'NGN' | |
+| tax_currency_code | VARCHAR(10) DEFAULT 'NGN' | FIRS `tax_currency_code` |
 | tax_point_date | DATE | Defaults to issue date in payload |
 | discount_rate | DECIMAL(5,2) DEFAULT 0 | Multiplier for the allowance_charge |
+
+**FIRS monetary / tax fields** (every header-level FIRS invoice field is now a
+first-class column so the table mirrors the API object, incl. optional ones —
+added by `migration_firs_invoice_columns.sql`)
+| Column | Type | FIRS payload field |
+|--------|------|--------------------|
+| line_extension_amount | DECIMAL(15,2) | `legal_monetary_total.line_extension_amount` |
+| allowance_total_amount | DECIMAL(15,2) | `legal_monetary_total.allowance_total_amount` |
+| charge_total_amount | DECIMAL(15,2) | `legal_monetary_total.charge_total_amount` |
+| tax_exclusive_amount | DECIMAL(15,2) | `legal_monetary_total.tax_exclusive_amount` |
+| tax_inclusive_amount | DECIMAL(15,2) | `legal_monetary_total.tax_inclusive_amount` |
+| payable_amount | DECIMAL(15,2) | `legal_monetary_total.payable_amount` |
+| tax_category_id | VARCHAR(40) | `tax_total[].tax_subtotal[].tax_category.id` |
+| allowance_charge_reason | VARCHAR(255) | `allowance_charge[].allowance_charge_reason` (optional) |
 
 **Indexes:** `idx_invoices_next_retry (next_retry_at)`,
 `idx_invoices_firs_status (firs_status)` — drive the retry-queue sweep.
