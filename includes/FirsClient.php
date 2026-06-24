@@ -24,6 +24,13 @@ class FirsClient
     private string $baseUrl;
     private string $apiKey;
     private string $apiSecret;
+    // FIRS issues two credential sets. The APP (taxpayer application) key is used
+    // for taxpayer-auth/validate/sign/confirm/download/update/exchange/report; the
+    // SI (system integrator) key is used for everything else (transmit, entity…).
+    private string $appKey;
+    private string $appSecret;
+    private string $siKey;
+    private string $siSecret;
     private string $serviceId;
     private string $entityId;
     private string $businessId;
@@ -31,17 +38,39 @@ class FirsClient
     private string $certificateB64;
     private int $timeout;
 
+    /** Endpoints that must be called with the APP key (everything else → SI key). */
+    private const APP_KEY_ENDPOINTS = [
+        '/taxpayer-auth', '/invoice/validate', '/invoice/sign', '/invoice/confirm',
+        '/invoice/download', '/invoice/update', '/invoice/exchange', '/invoice/report',
+    ];
+
     public function __construct()
     {
         $this->baseUrl        = rtrim((string) env('FIRS_API_URL', 'https://eivc-k6z6d.ondigitalocean.app'), '/');
         $this->apiKey         = (string) env('FIRS_API_KEY', '');
         $this->apiSecret      = (string) env('FIRS_API_SECRET', '');
+        // Each set falls back to the legacy single key when not separately configured.
+        $this->appKey         = (string) env('FIRS_APP_KEY', $this->apiKey);
+        $this->appSecret      = (string) env('FIRS_APP_SECRET', $this->apiSecret);
+        $this->siKey          = (string) env('FIRS_SI_KEY', $this->apiKey);
+        $this->siSecret       = (string) env('FIRS_SI_SECRET', $this->apiSecret);
         $this->serviceId      = (string) env('FIRS_SERVICE_ID', '');
         $this->entityId       = (string) env('FIRS_ENTITY_ID', '');
         $this->businessId     = (string) env('FIRS_BUSINESS_ID', '');
         $this->publicKeyB64   = (string) env('FIRS_PUBLIC_KEY', '');
         $this->certificateB64 = (string) env('FIRS_CERTIFICATE', '');
         $this->timeout        = (int) env('FIRS_TIMEOUT', 30);
+    }
+
+    /** Pick the right credential set for a given endpoint path. */
+    private function credsFor(string $path): array
+    {
+        foreach (self::APP_KEY_ENDPOINTS as $ep) {
+            if (strpos($path, $ep) !== false) {
+                return [$this->appKey, $this->appSecret];
+            }
+        }
+        return [$this->siKey, $this->siSecret];
     }
 
     // ── Configuration helpers ───────────────────────────────────────────────
@@ -197,10 +226,11 @@ class FirsClient
         $url = $this->baseUrl . $path;
         $ch  = curl_init($url);
 
+        [$key, $secret] = $this->credsFor($path);
         $headers = [
             'Accept: application/json',
-            'x-api-key: ' . $this->apiKey,
-            'x-api-secret: ' . $this->apiSecret,
+            'x-api-key: ' . $key,
+            'x-api-secret: ' . $secret,
         ];
 
         $opts = [
