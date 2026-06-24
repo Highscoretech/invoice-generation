@@ -1,7 +1,10 @@
 # Secrets / environment — never commit
 .env
 .env.*
-NRS_e-invoice-_cryptographic_key.txt
+NRS_e-invoice-*cryptographic_key.txt
+API Key_Secret.txt
+Ids.txt
+*_Secret.txt
 
 # Build / deploy artifacts
 einvoice_deploy.zip
