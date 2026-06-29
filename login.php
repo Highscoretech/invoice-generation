@@ -4,15 +4,23 @@ require_once 'includes/auth.php';
 $auth = new Auth();
 $error = '';
 
+// CSRF token for the login form (defence-in-depth, Pentest finding M1).
+if (empty($_SESSION['csrf_login'])) {
+    $_SESSION['csrf_login'] = bin2hex(random_bytes(32));
+}
+
 if ($_POST) {
     $username = $_POST['username'] ?? '';
     $password = $_POST['password'] ?? '';
-    
-    if ($auth->login($username, $password)) {
+    $token    = $_POST['csrf_token'] ?? '';
+
+    if (!hash_equals($_SESSION['csrf_login'] ?? '', $token)) {
+        $error = 'Invalid or expired session token. Please try again.';
+    } elseif ($auth->login($username, $password)) {
         header('Location: dashboard.php');
         exit();
     } else {
-        $error = 'Invalid username or password';
+        $error = $auth->loginError ?: 'Invalid username or password';
     }
 }
 
@@ -130,6 +138,7 @@ if ($auth->isLoggedIn()) {
                     <?php endif; ?>
                     
                     <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_login'], ENT_QUOTES); ?>">
                         <div class="mb-3">
                             <label class="form-label">Username</label>
                             <div class="input-group">

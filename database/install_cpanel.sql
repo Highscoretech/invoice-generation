@@ -333,6 +333,17 @@ ALTER TABLE invoices
 ALTER TABLE invoices
     ADD COLUMN firs_payload MEDIUMTEXT NULL AFTER qr_data;
 
+-- ===== database/migration_login_attempts.sql =====
+-- Login throttling / brute-force protection.
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    username     VARCHAR(100) NOT NULL,
+    ip           VARCHAR(64) NULL,
+    attempted_at DATETIME NOT NULL,
+    success      TINYINT(1) NOT NULL DEFAULT 0,
+    INDEX idx_la_user (username, attempted_at)
+);
+
 -- ===== database/migration_firs_invoice_columns.sql =====
 -- Every header-level FIRS invoice field as a first-class column (incl. optional).
 ALTER TABLE invoices

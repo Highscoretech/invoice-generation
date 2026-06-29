@@ -37,14 +37,47 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         // submission. The note is encrypted at rest.
         require_once 'includes/Crypto.php';
 
-        // Derive the full FIRS monetary breakdown so every API field is stored
-        // (tax is charged on the post-discount base, matching InvoicePayload).
-        $cSubtotal  = (float) ($_POST['subtotal'] ?? 0);
-        $cDiscount  = (float) ($_POST['discount_amount'] ?? 0);
-        $cTaxAmount = (float) ($_POST['tax_amount'] ?? 0);
+        // ── Server-side financial computation (security: never trust client
+        // price fields). The items catalogue is the authoritative source of
+        // pricing; all submitted rate/amount/subtotal/tax/total values are
+        // ignored and recomputed here. (Pentest finding H1.)
+        $VAT_RATE = 7.5; // server-controlled standard VAT (FIRS)
+        $postedItems = (isset($_POST['items']) && is_array($_POST['items'])) ? $_POST['items'] : [];
+        $lineItems = [];
+        $cSubtotal = 0.0;
+        foreach ($postedItems as $row) {
+            $itemId = (int) ($row['item_id'] ?? 0);
+            $qty    = (float) ($row['quantity'] ?? 0);
+            if ($itemId <= 0 || $qty <= 0) {
+                continue;
+            }
+            // Authoritative price from THIS company's active catalogue only.
+            $look = $conn->prepare("SELECT item_code, selling_price FROM items
+                                     WHERE id = :id AND company_id = :co AND status = 'active'");
+            $look->execute([':id' => $itemId, ':co' => $_SESSION['company_id']]);
+            $cat = $look->fetch(PDO::FETCH_ASSOC);
+            if (!$cat) {
+                continue; // not a catalogue item for this company — skip
+            }
+            $rate   = round((float) $cat['selling_price'], 2);
+            $amount = round($rate * $qty, 2);
+            $cSubtotal += $amount;
+            $lineItems[] = ['item_id' => $itemId, 'item_code' => $cat['item_code'],
+                            'quantity' => $qty, 'rate' => $rate, 'amount' => $amount];
+        }
+        if (empty($lineItems)) {
+            throw new Exception('At least one valid catalogue item is required.');
+        }
+        $cSubtotal  = round($cSubtotal, 2);
+        // Discount is a legitimate business input, but bounded to [0, subtotal].
+        $cDiscount  = round(max(0.0, min((float) ($_POST['discount_amount'] ?? 0), $cSubtotal)), 2);
+        $cTaxRate   = $VAT_RATE;
         $cTaxExcl   = round($cSubtotal - $cDiscount, 2);
+        $cTaxAmount = round($cTaxExcl * $cTaxRate / 100, 2);
         $cTaxIncl   = round($cTaxExcl + $cTaxAmount, 2);
-        $cCurrency  = $_POST['document_currency_code'] ?? 'NGN';
+        $cTotal     = $cTaxIncl;
+        $cCurrency  = in_array($_POST['document_currency_code'] ?? 'NGN', ['NGN', 'USD', 'EUR', 'GBP'], true)
+                    ? $_POST['document_currency_code'] : 'NGN';
 
         $query = "INSERT INTO invoices (invoice_number, date, time, customer_id, company_id, user_id,
                   due_date, subtotal, line_extension_amount, tax_rate, tax_category_id, tax_amount,
@@ -68,7 +101,7 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'due_date' => $_POST['due_date'],
             'subtotal' => $cSubtotal,
             'line_extension_amount' => $cSubtotal,
-            'tax_rate' => $_POST['tax_rate'],
+            'tax_rate' => $cTaxRate,
             'tax_category_id' => 'STANDARD_VAT',
             'tax_amount' => $cTaxAmount,
             'discount_amount' => $cDiscount,
@@ -79,8 +112,8 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
             'charge_total_amount' => 0,
             'tax_exclusive_amount' => $cTaxExcl,
             'tax_inclusive_amount' => $cTaxIncl,
-            'total_amount' => $_POST['total_amount'],
-            'payable_amount' => $_POST['total_amount'],
+            'total_amount' => $cTotal,
+            'payable_amount' => $cTotal,
             'qr_url' => $qr_url,
             // New invoices are drafts until they are actually verified by FIRS
             // (FirsService promotes them to 'verified' on a successful transmit).
@@ -95,24 +128,20 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         
         $invoice_id = $conn->lastInsertId();
         
-        // Insert invoice items
-        if (isset($_POST['items']) && is_array($_POST['items'])) {
-            foreach ($_POST['items'] as $item) {
-                if (!empty($item['item_id']) && !empty($item['quantity']) && !empty($item['rate'])) {
-                    $query = "INSERT INTO invoice_items (invoice_id, item_id, item_code, quantity, rate, amount) 
-                              VALUES (:invoice_id, :item_id, :item_code, :quantity, :rate, :amount)";
-                    
-                    $stmt = $conn->prepare($query);
-                    $stmt->execute([
-                        'invoice_id' => $invoice_id,
-                        'item_id' => $item['item_id'],
-                        'item_code' => $item['item_code'],
-                        'quantity' => $item['quantity'],
-                        'rate' => $item['rate'],
-                        'amount' => $item['amount']
-                    ]);
-                }
-            }
+        // Insert invoice items using the server-computed line items (rate/amount
+        // come from the catalogue, not the client). (Pentest finding H1.)
+        foreach ($lineItems as $item) {
+            $query = "INSERT INTO invoice_items (invoice_id, item_id, item_code, quantity, rate, amount)
+                      VALUES (:invoice_id, :item_id, :item_code, :quantity, :rate, :amount)";
+            $stmt = $conn->prepare($query);
+            $stmt->execute([
+                'invoice_id' => $invoice_id,
+                'item_id' => $item['item_id'],
+                'item_code' => $item['item_code'],
+                'quantity' => $item['quantity'],
+                'rate' => $item['rate'],
+                'amount' => $item['amount'],
+            ]);
         }
         
         $conn->commit();
@@ -337,7 +366,9 @@ include 'includes/header.php';
 
 <script>
 let itemCount = 0;
-const items = <?php echo json_encode($items); ?>;
+// JSON_HEX_* escapes angle brackets/ampersands/quotes so item data can never
+// break out of this script block. (Pentest finding H2.)
+const items = <?php echo json_encode($items, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS); ?>;
 
 function addItem() {
     itemCount++;
@@ -349,29 +380,31 @@ function addItem() {
         noItemsMessage.style.display = 'none';
     }
     
+    // Static markup only — the only interpolated value is itemCount (a number),
+    // so no user-controlled data is parsed as HTML here. The <select> is left
+    // empty and its options are added via the DOM API below. (Pentest finding H2.)
     const itemHtml = `
         <div class="row mb-3 item-row border-bottom pb-3" id="item-${itemCount}">
             <div class="col-12 col-md-4 mb-2 mb-md-0">
                 <label class="form-label small">Item</label>
-                <select class="form-select" name="items[${itemCount}][item_id]" onchange="updateItemDetails(${itemCount})" required>
+                <select class="form-select" name="items[${itemCount}][item_id]" id="item_select_${itemCount}" onchange="updateItemDetails(${itemCount})" required>
                     <option value="">Select Item</option>
-                    ${items.map(item => `<option value="${item.id}" data-code="${item.item_code || ''}" data-price="${item.selling_price}" data-hsn="${item.hsn_code || ''}">${item.name} ${item.item_code ? '(' + item.item_code + ')' : ''}</option>`).join('')}
                 </select>
                 <input type="hidden" name="items[${itemCount}][item_code]" id="item_code_${itemCount}">
             </div>
             <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Quantity</label>
-                <input type="number" class="form-control" name="items[${itemCount}][quantity]" 
+                <input type="number" class="form-control" name="items[${itemCount}][quantity]"
                        placeholder="0" step="1" min="1" onchange="calculateItemAmount(${itemCount})" required>
             </div>
             <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Rate</label>
-                <input type="number" class="form-control" name="items[${itemCount}][rate]" 
-                       placeholder="0.00" step="0.01" onchange="calculateItemAmount(${itemCount})" required>
+                <input type="number" class="form-control" name="items[${itemCount}][rate]"
+                       placeholder="0.00" step="0.01" readonly>
             </div>
             <div class="col-6 col-md-2 mb-2 mb-md-0">
                 <label class="form-label small">Amount</label>
-                <input type="number" class="form-control" name="items[${itemCount}][amount]" 
+                <input type="number" class="form-control" name="items[${itemCount}][amount]"
                        placeholder="0.00" step="0.01" readonly>
             </div>
             <div class="col-6 col-md-2 pt-0 pt-md-0">
@@ -384,6 +417,20 @@ function addItem() {
         </div>
     `;
     container.insertAdjacentHTML('beforeend', itemHtml);
+
+    // Build the <select> options with the DOM API so item names/codes are set
+    // as TEXT (textContent) and attributes (setAttribute) — never parsed as
+    // HTML. This neutralises any markup stored in an item name. (Finding H2.)
+    const select = document.getElementById(`item_select_${itemCount}`);
+    items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.setAttribute('data-code', item.item_code || '');
+        opt.setAttribute('data-price', item.selling_price);
+        opt.setAttribute('data-hsn', item.hsn_code || '');
+        opt.textContent = item.name + (item.item_code ? ' (' + item.item_code + ')' : '');
+        select.appendChild(opt);
+    });
 }
 
 function updateItemDetails(itemIndex) {
