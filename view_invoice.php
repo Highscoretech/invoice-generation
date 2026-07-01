@@ -86,8 +86,9 @@ include 'includes/header.php';
             <?php endif; ?>
             <?php if (!empty($invoice['qr_data'])): ?>
                 <div class="mt-2">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=<?php echo urlencode($invoice['qr_data']); ?>"
-                         alt="FIRS QR" width="130" height="130" style="border-radius:8px;">
+                    <!-- FIRS QR generated locally (signed payload never leaves the
+                         server to a third-party service); rendered inline = CSP-safe. -->
+                    <div id="firs-qr" data-qr="<?php echo htmlspecialchars($invoice['qr_data'], ENT_QUOTES); ?>"></div>
                     <?php if (in_array($invoice['firs_status'] ?? '', ['signed', 'transmitted'], true)): ?>
                         <div class="mt-1"><span class="badge bg-success"><i class="fas fa-check-circle"></i> FIRS Signed</span></div>
                     <?php endif; ?>
@@ -227,4 +228,23 @@ include 'includes/header.php';
 }
 </style>
 
+<script src="assets/qrcode.min.js"></script>
+<script>
+(function () {
+    var el = document.getElementById('firs-qr');
+    if (!el) return;
+    var data = el.getAttribute('data-qr');
+    if (!data) return;
+    try {
+        var qr = qrcode(0, 'L');   // auto version, error-correction L (fits the payload)
+        qr.addData(data);
+        qr.make();
+        el.innerHTML = qr.createImgTag(3, 4);  // cell size 3px, quiet-zone margin 4
+        var img = el.querySelector('img');
+        if (img) { img.style.width = '130px'; img.style.height = '130px'; img.style.borderRadius = '8px'; img.alt = 'FIRS QR'; }
+    } catch (e) {
+        el.textContent = 'QR unavailable';
+    }
+})();
+</script>
 <?php include 'includes/footer.php'; ?>
