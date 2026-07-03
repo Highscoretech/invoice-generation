@@ -100,6 +100,63 @@ Key columns: `id` PK; `item_code`; `company_id` **FK → companies(id)** CASCADE
 ## 3. Invoicing
 
 ### `invoices` — invoice header + full FIRS lifecycle
+
+**Complete column list (all 49 columns, in table order):**
+
+| # | Column | Type | Null | Default | Description |
+|---|--------|------|------|---------|-------------|
+| 1 | id | INT PK AI | NO | — | Primary key |
+| 2 | invoice_number | VARCHAR(100) | NO | — | Unique invoice number |
+| 3 | irn | VARCHAR(120) | YES | NULL | FIRS Invoice Reference Number |
+| 4 | date | DATE | NO | — | Issue date |
+| 5 | time | TIME | NO | — | Issue time |
+| 6 | customer_id | INT | NO | — | **FK → customers(id)** CASCADE |
+| 7 | company_id | INT | NO | — | **FK → companies(id)** CASCADE (supplier) |
+| 8 | user_id | INT | NO | — | **FK → users(id)** CASCADE (creator) |
+| 9 | due_date | DATE | YES | NULL | Payment due date |
+| 10 | subtotal | DECIMAL(15,2) | NO | — | Sum of lines (pre-discount) |
+| 11 | line_extension_amount | DECIMAL(15,2) | NO | 0.00 | FIRS `legal_monetary_total.line_extension_amount` |
+| 12 | tax_rate | DECIMAL(5,2) | YES | 0.00 | VAT percentage |
+| 13 | tax_category_id | VARCHAR(40) | NO | STANDARD_VAT | FIRS tax category id |
+| 14 | tax_amount | DECIMAL(15,2) | YES | 0.00 | VAT amount |
+| 15 | discount_amount | DECIMAL(15,2) | YES | 0.00 | Document-level discount |
+| 16 | allowance_total_amount | DECIMAL(15,2) | NO | 0.00 | FIRS `allowance_total_amount` (= discount) |
+| 17 | allowance_charge_reason | VARCHAR(255) | YES | NULL | Discount reason (e.g. "Discount") |
+| 18 | charge_total_amount | DECIMAL(15,2) | NO | 0.00 | FIRS `charge_total_amount` |
+| 19 | tax_exclusive_amount | DECIMAL(15,2) | NO | 0.00 | Taxable base (subtotal − discount) |
+| 20 | tax_inclusive_amount | DECIMAL(15,2) | NO | 0.00 | Taxable base + VAT |
+| 21 | discount_rate | DECIMAL(5,2) | NO | 0.00 | Discount as a percentage |
+| 22 | total_amount | DECIMAL(15,2) | NO | — | Grand total |
+| 23 | payable_amount | DECIMAL(15,2) | NO | 0.00 | FIRS `payable_amount` (= total) |
+| 24 | qr_url | VARCHAR(255) | YES | NULL | Legacy QR URL (superseded by `qr_data`) |
+| 25 | status | ENUM('draft','sent','paid','cancelled','verified') | YES | draft | Business status |
+| 26 | api_status | ENUM('pending','sent','success','failed') | YES | pending | Legacy send status |
+| 27 | api_response | TEXT | YES | NULL | Last raw API response |
+| 28 | notes | TEXT | YES | NULL | Free note — **AES-256 encrypted at rest** |
+| 29 | created_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | Row created |
+| 30 | updated_at | TIMESTAMP | NO | CURRENT_TIMESTAMP | Row updated |
+| 31 | business_id | VARCHAR(64) | YES | NULL | FIRS business UUID |
+| 32 | qr_data | MEDIUMTEXT | YES | NULL | RSA-encrypted FIRS QR payload (base64) |
+| 33 | firs_payload | MEDIUMTEXT | YES | NULL | Exact FIRS BIS 3.0 payload (transmitted verbatim) |
+| 34 | firs_status | VARCHAR(32) | NO | not_sent | Pipeline status (`not_sent`→`validated`→`signed`→`transmitted`/`failed`/`queued_retry`) |
+| 35 | validated_at | DATETIME | YES | NULL | Validate stage timestamp |
+| 36 | signed_at | DATETIME | YES | NULL | Sign stage timestamp |
+| 37 | transmitted_at | DATETIME | YES | NULL | Transmit stage timestamp |
+| 38 | transmit_attempts | INT | NO | 0 | Retry attempt counter |
+| 39 | last_attempt_at | DATETIME | YES | NULL | Last submission attempt |
+| 40 | next_retry_at | DATETIME | YES | NULL | Scheduled retry time |
+| 41 | last_error | VARCHAR(500) | YES | NULL | Last error message |
+| 42 | delivered | TINYINT(1) | NO | 0 | Delivered flag |
+| 43 | entry_status | VARCHAR(40) | YES | NULL | NRS entry status (NEW_ENTRY, TRANSMITTED, …) |
+| 44 | confirmed_at | DATETIME | YES | NULL | Last `/confirm` poll |
+| 45 | invoice_type_code | VARCHAR(10) | NO | 381 | 381 = Commercial Invoice |
+| 46 | payment_status | VARCHAR(20) | NO | PENDING | Payment status |
+| 47 | document_currency_code | VARCHAR(10) | NO | NGN | Document currency |
+| 48 | tax_currency_code | VARCHAR(10) | NO | NGN | Tax currency |
+| 49 | tax_point_date | DATE | YES | NULL | Tax point date (defaults to issue date in payload) |
+
+The same columns are described by purpose in the grouped tables below.
+
 **Base columns**
 | Column | Type | Notes |
 |--------|------|-------|
