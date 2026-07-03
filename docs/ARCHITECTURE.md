@@ -11,19 +11,77 @@ accountants) create invoices; the middleware builds the IRN, validates, signs,
 generates the FIRS QR, transmits to the portal, records every response, tracks
 status, and automatically retries anything that fails for a transient reason.
 
+![System data-flow diagram](system-dataflow-diagram.png)
+
+*Figure 1 — System data-flow: the customer/taxpayer submits invoice data to the
+E-Invoice Middleware, which builds the FIRS BIS 3.0 document, calls the FIRS/NRS
+(MBS) portal through the validate → sign → QR → transmit → confirm pipeline,
+persists every step to MySQL, and returns the IRN, status and signed QR.*
+
+The same flow as a diagram source (renders on GitHub):
+
+```mermaid
+flowchart LR
+    C["Customer / Taxpayer<br/>(billing system or accountant UI)"]
+    subgraph MW["E-Invoice Middleware (PHP — test.virdi.biz)"]
+      API["Customer API<br/>ApiAuth (x-client-key/secret)"]
+      PB["Payload Builder<br/>DB → FIRS BIS 3.0"]
+      FC["FIRS Client<br/>validate / sign / transmit / confirm"]
+      QR["QR Signer<br/>RSA/PKCS#1 + certificate"]
+      RQ["Retry queue + Webhook dispatcher"]
+    end
+    DB[("MySQL / MariaDB")]
+    NRS["FIRS / NRS (MBS) Portal"]
+    C -->|"1 · POST /api/v1/invoices (API key)"| API
+    API --> PB --> FC
+    FC -->|"3 · validate (APP key) → 200"| NRS
+    FC -->|"4 · sign (APP key) → 201"| NRS
+    QR -.->|"5 · QR generated locally"| PB
+    FC -->|"6 · transmit /{IRN} (SI key)"| NRS
+    NRS -->|"7 · webhook (HMAC)"| RQ
+    FC -->|"8 · confirm /{IRN} (APP key)"| NRS
+    MW -->|persist + audit| DB
+    API -->|"9 · IRN + status + QR"| C
 ```
- ┌──────────────┐     REST/JSON      ┌─────────────────────────────┐    HTTPS     ┌──────────────────┐
- │  Customer     │  x-client-key/     │   E-Invoice Middleware       │  x-api-key/  │   FIRS / NRS      │
- │  system       │ ───────────────▶  │   (this PHP app)             │ ───────────▶ │   MBS portal      │
- │  / Accountant │   secret           │                              │  secret      │  (DigitalOcean)   │
- │   UI          │ ◀───────────────  │  validate→sign→QR→transmit   │ ◀─────────── │                   │
- └──────────────┘   status / IRN     └──────────────┬──────────────┘   responses   └──────────────────┘
-                                                     │
-                                              ┌──────▼──────┐
-                                              │   MySQL      │  invoices, firs_transmissions,
-                                              │  (invoice_app)│  api_clients, api_inbound_invoices
-                                              └─────────────┘
-```
+
+### 1.1 Data flow & NRS/MBS connection (step by step)
+
+1. **Receive** — a customer billing system calls `POST /api/v1/invoices`
+   (authenticated with `x-client-key` / `x-client-secret`), or an accountant
+   creates the invoice in the web UI.
+2. **Build** — the middleware authenticates the caller, builds the **IRN** from
+   the entity's template, maps the data to the **FIRS BIS 3.0** payload, and
+   persists the invoice (idempotent on the caller's `external_reference`).
+3. **Validate** — `POST /api/v1/invoice/validate` on the NRS/MBS portal, using
+   the **APP key** → `200 OK`.
+4. **Sign** — `POST /api/v1/invoice/sign` (APP key) → `201 Created`; the invoice
+   is registered/signed and appears in the taxpayer's NRS account.
+5. **QR** — the FIRS QR is generated **locally**: RSA/PKCS#1-encrypt
+   `{ irn, certificate }` with the FIRS public key, then Base64 (no third party).
+6. **Transmit** — `POST /api/v1/invoice/transmit/{IRN}` using the **SI key**
+   (4-corner exchange to the buyer's access point).
+7. **Webhook (async)** — NRS calls back `POST /api/v1/webhook/firs`
+   (HMAC-SHA256 verified) on status changes; the event is logged and triggers a
+   re-poll rather than being trusted blindly.
+8. **Confirm** — `GET /api/v1/invoice/confirm/{IRN}` (APP key) returns the
+   authoritative `entry_status` / `delivered`. Transient failures are auto-retried
+   by the cron runner with exponential backoff.
+9. **Return** — the middleware returns the **IRN, FIRS status and signed QR** to
+   the customer (API response + a signed webhook callback to their `webhook_url`).
+
+**Connection & security summary**
+
+| Aspect | Detail |
+|--------|--------|
+| NRS/MBS host (sandbox) | `https://eivc-k6z6d.ondigitalocean.app` |
+| NRS/MBS host (production) | `https://einvoice.firs.gov.ng` |
+| Transport | HTTPS / TLS 1.2+ |
+| **APP key** (`x-api-key`/`x-api-secret`) | taxpayer-auth, **validate**, **sign**, **confirm**, download, update, exchange, report |
+| **SI key** (`x-api-key`/`x-api-secret`) | **transmit** and other system-integrator actions |
+| Customer → middleware auth | `x-client-key` / `x-client-secret` (bcrypt-hashed) |
+| Inbound webhook auth | `POST /api/v1/webhook/firs` — HMAC-SHA256 / shared token |
+| QR | RSA/PKCS#1 `{irn, certificate}` with the FIRS public key → Base64 |
+| At rest | secrets in `.env`; sensitive fields AES-256; full audit in `firs_transmissions` |
 
 ## Technology Stack
 

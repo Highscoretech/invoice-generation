@@ -59,17 +59,17 @@ coverage), `provision_api_client.php` (CLI — create API clients),
 `retry_transmissions.php` (cron — retries + confirm polls + webhook resends).
 
 ## 2. High-Level System Diagram
-Provide a simple block diagram (e.g., a C4 Model Level 1: System Context diagram, or a basic component diagram) or a clear text-based description of the major components and their interactions. Focus on how data flows, services communicate, and key architectural boundaries.
 
-```
-[Customer system / Accountant UI]
-        |  x-client-key / x-client-secret (REST/JSON)
-        v
-[E-Invoice Middleware (this PHP app)]  --validate→sign→QR→transmit-->  [FIRS / NRS MBS portal]
-        |                                  x-api-key / x-api-secret          (DigitalOcean)
-        v
-   [MySQL / MariaDB]   (invoices, firs_transmissions, api_clients, webhook_deliveries, ...)
-```
+The standard system data-flow diagram below shows how invoice data moves from the
+customer/taxpayer through the middleware to the FIRS/NRS (MBS) portal and back.
+A full step-by-step walkthrough and the NRS/MBS connection details are in
+[`docs/ARCHITECTURE.md` §1.1](docs/ARCHITECTURE.md).
+
+![System data-flow diagram](docs/system-dataflow-diagram.png)
+
+*Customer/Taxpayer → E-Invoice Middleware → FIRS/NRS (MBS) portal, with the MySQL
+store and asynchronous status webhooks. Flow: 1 receive → 2 build (IRN + BIS 3.0)
+→ 3 validate → 4 sign → 5 QR → 6 transmit → 7 webhook → 8 confirm → 9 return.*
 
 The middleware sits between a customer's billing system (or internal
 accountants) and the Nigerian FIRS/NRS e-invoicing portal. It builds the IRN,
