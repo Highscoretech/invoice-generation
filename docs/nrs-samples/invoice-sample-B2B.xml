@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FIRS/NRS (MBS) BIS 3.0 invoice - XML representation of the JSON payload transmitted to NRS. Includes optional (non-mandatory) fields. -->
+<Invoice>
+  <business_id>0eb6969b-353a-4638-ba53-d449b413d6a3</business_id>
+  <irn>INVB2B0001-4BB2353A-20260706</irn>
+  <issue_date>2026-07-06</issue_date>
+  <due_date>2026-08-05</due_date>
+  <issue_time>09:00:00</issue_time>
+  <invoice_type_code>381</invoice_type_code>
+  <payment_status>PENDING</payment_status>
+  <document_currency_code>NGN</document_currency_code>
+  <tax_currency_code>NGN</tax_currency_code>
+  <accounting_supplier_party>
+    <party_name>Virdi Nigeria Limited</party_name>
+    <tin>22047671-0001</tin>
+    <email>info@virdi.com.ng</email>
+    <telephone>+2348012345678</telephone>
+    <business_description>General trade and services</business_description>
+    <postal_address>
+      <street_name>12 Marina Road</street_name>
+      <city_name>Lagos</city_name>
+      <postal_zone>100001</postal_zone>
+      <country>NG</country>
+    </postal_address>
+  </accounting_supplier_party>
+  <accounting_customer_party>
+    <party_name>Acme Trading Limited</party_name>
+    <tin>10214563-0001</tin>
+    <email>accounts@acmetrading.ng</email>
+    <telephone>+2348098765432</telephone>
+    <business_description>Wholesale distribution</business_description>
+    <postal_address>
+      <street_name>5 Broad Street</street_name>
+      <city_name>Lagos</city_name>
+      <postal_zone>100001</postal_zone>
+      <country>NG</country>
+    </postal_address>
+  </accounting_customer_party>
+  <legal_monetary_total>
+    <line_extension_amount>90000</line_extension_amount>
+    <allowance_total_amount>5000</allowance_total_amount>
+    <charge_total_amount>0</charge_total_amount>
+    <tax_exclusive_amount>85000</tax_exclusive_amount>
+    <tax_inclusive_amount>91375</tax_inclusive_amount>
+    <payable_amount>91375</payable_amount>
+  </legal_monetary_total>
+  <invoice_line>
+    <hsn_code>8471.30</hsn_code>
+    <product_category>Electronics</product_category>
+    <invoiced_quantity>10</invoiced_quantity>
+    <line_extension_amount>50000</line_extension_amount>
+    <item>
+      <name>Laptop computer</name>
+      <description>Business laptop, 14-inch</description>
+    </item>
+    <price>
+      <price_amount>5000</price_amount>
+      <base_quantity>1</base_quantity>
+      <price_unit>NGN per 1</price_unit>
+    </price>
+  </invoice_line>
+  <invoice_line>
+    <hsn_code>8517.12</hsn_code>
+    <product_category>Electronics</product_category>
+    <invoiced_quantity>5</invoiced_quantity>
+    <line_extension_amount>40000</line_extension_amount>
+    <item>
+      <name>Smartphone</name>
+      <description>Android smartphone</description>
+    </item>
+    <price>
+      <price_amount>8000</price_amount>
+      <base_quantity>1</base_quantity>
+      <price_unit>NGN per 1</price_unit>
+    </price>
+  </invoice_line>
+  <tax_total>
+    <tax_amount>6375</tax_amount>
+    <tax_subtotal>
+      <taxable_amount>85000</taxable_amount>
+      <tax_amount>6375</tax_amount>
+      <tax_category>
+        <id>STANDARD_VAT</id>
+        <percent>7.5</percent>
+      </tax_category>
+    </tax_subtotal>
+  </tax_total>
+  <allowance_charge>
+    <charge_indicator>false</charge_indicator>
+    <allowance_charge_reason>Volume discount</allowance_charge_reason>
+    <amount>5000</amount>
+    <multiplier_factor_numeric>5.56</multiplier_factor_numeric>
+    <base_amount>90000</base_amount>
+  </allowance_charge>
+  <tax_point_date>2026-07-06</tax_point_date>
+  <note>Purchase order PO-2026-0456; net 30 days.</note>
+</Invoice>

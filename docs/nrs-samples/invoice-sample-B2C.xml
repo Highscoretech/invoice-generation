@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- FIRS/NRS (MBS) BIS 3.0 invoice - XML representation of the JSON payload transmitted to NRS. Includes optional (non-mandatory) fields. -->
+<Invoice>
+  <business_id>0eb6969b-353a-4638-ba53-d449b413d6a3</business_id>
+  <irn>INVB2C0001-4BB2353A-20260706</irn>
+  <issue_date>2026-07-06</issue_date>
+  <due_date>2026-08-05</due_date>
+  <issue_time>09:00:00</issue_time>
+  <invoice_type_code>381</invoice_type_code>
+  <payment_status>PENDING</payment_status>
+  <document_currency_code>NGN</document_currency_code>
+  <tax_currency_code>NGN</tax_currency_code>
+  <accounting_supplier_party>
+    <party_name>Virdi Nigeria Limited</party_name>
+    <tin>22047671-0001</tin>
+    <email>info@virdi.com.ng</email>
+    <telephone>+2348012345678</telephone>
+    <business_description>General trade and services</business_description>
+    <postal_address>
+      <street_name>12 Marina Road</street_name>
+      <city_name>Lagos</city_name>
+      <postal_zone>100001</postal_zone>
+      <country>NG</country>
+    </postal_address>
+  </accounting_supplier_party>
+  <accounting_customer_party>
+    <party_name>John Adewale</party_name>
+    <tin>00000000-0001</tin>
+    <email>john.adewale@example.com</email>
+    <telephone>+2348011122233</telephone>
+    <business_description>Individual consumer</business_description>
+    <postal_address>
+      <street_name>20 Allen Avenue</street_name>
+      <city_name>Ikeja</city_name>
+      <postal_zone>100281</postal_zone>
+      <country>NG</country>
+    </postal_address>
+  </accounting_customer_party>
+  <legal_monetary_total>
+    <line_extension_amount>15000</line_extension_amount>
+    <allowance_total_amount>0</allowance_total_amount>
+    <charge_total_amount>0</charge_total_amount>
+    <tax_exclusive_amount>15000</tax_exclusive_amount>
+    <tax_inclusive_amount>16125</tax_inclusive_amount>
+    <payable_amount>16125</payable_amount>
+  </legal_monetary_total>
+  <invoice_line>
+    <hsn_code>6109.10</hsn_code>
+    <product_category>Apparel</product_category>
+    <invoiced_quantity>2</invoiced_quantity>
+    <line_extension_amount>15000</line_extension_amount>
+    <item>
+      <name>Cotton T-shirt</name>
+      <description>Branded cotton T-shirt</description>
+    </item>
+    <price>
+      <price_amount>7500</price_amount>
+      <base_quantity>1</base_quantity>
+      <price_unit>NGN per 1</price_unit>
+    </price>
+  </invoice_line>
+  <tax_total>
+    <tax_amount>1125</tax_amount>
+    <tax_subtotal>
+      <taxable_amount>15000</taxable_amount>
+      <tax_amount>1125</tax_amount>
+      <tax_category>
+        <id>STANDARD_VAT</id>
+        <percent>7.5</percent>
+      </tax_category>
+    </tax_subtotal>
+  </tax_total>
+  <tax_point_date>2026-07-06</tax_point_date>
+  <note>Retail sale - walk-in customer.</note>
+</Invoice>

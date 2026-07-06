@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FIRS / NRS (MBS) Invoice - BIS 3.0 payload",
+  "description": "Schema of the invoice payload the Virdi e-invoice middleware transmits to the FIRS/NRS MBS API (POST /api/v1/invoice/validate | /sign | /transmit). Required fields are listed under 'required'; all other fields are optional (non-mandatory).",
+  "type": "object",
+  "required": [
+    "business_id", "irn", "issue_date", "invoice_type_code",
+    "document_currency_code", "accounting_supplier_party",
+    "accounting_customer_party", "legal_monetary_total", "invoice_line", "tax_total"
+  ],
+  "properties": {
+    "business_id": { "type": "string", "format": "uuid", "description": "FIRS business UUID (server-set)." },
+    "irn": { "type": "string", "description": "Invoice Reference Number, e.g. INVB2B0001-4BB2353A-20260706." },
+    "issue_date": { "type": "string", "format": "date" },
+    "due_date": { "type": "string", "format": "date", "description": "Optional." },
+    "issue_time": { "type": "string", "example": "09:00:00", "description": "Optional." },
+    "invoice_type_code": { "type": "string", "default": "381", "description": "381 = Commercial Invoice." },
+    "payment_status": { "type": "string", "default": "PENDING", "description": "Optional." },
+    "document_currency_code": { "type": "string", "default": "NGN" },
+    "tax_currency_code": { "type": "string", "default": "NGN", "description": "Optional." },
+    "accounting_supplier_party": { "$ref": "#/definitions/party" },
+    "accounting_customer_party": { "$ref": "#/definitions/party" },
+    "legal_monetary_total": {
+      "type": "object",
+      "required": ["line_extension_amount", "tax_exclusive_amount", "tax_inclusive_amount", "payable_amount"],
+      "properties": {
+        "line_extension_amount": { "type": "number" },
+        "allowance_total_amount": { "type": "number", "description": "Optional - total discounts." },
+        "charge_total_amount": { "type": "number", "description": "Optional - total charges." },
+        "tax_exclusive_amount": { "type": "number" },
+        "tax_inclusive_amount": { "type": "number" },
+        "payable_amount": { "type": "number" }
+      }
+    },
+    "invoice_line": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["hsn_code", "invoiced_quantity", "line_extension_amount", "item", "price"],
+        "properties": {
+          "hsn_code": { "type": "string", "example": "8471.30" },
+          "product_category": { "type": "string", "description": "Optional." },
+          "invoiced_quantity": { "type": "number" },
+          "line_extension_amount": { "type": "number" },
+          "item": {
+            "type": "object", "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": "string", "description": "Optional." }
+            }
+          },
+          "price": {
+            "type": "object", "required": ["price_amount"],
+            "properties": {
+              "price_amount": { "type": "number" },
+              "base_quantity": { "type": "number", "description": "Optional." },
+              "price_unit": { "type": "string", "description": "Optional." }
+            }
+          }
+        }
+      }
+    },
+    "tax_total": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["tax_amount", "tax_subtotal"],
+        "properties": {
+          "tax_amount": { "type": "number" },
+          "tax_subtotal": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["taxable_amount", "tax_amount", "tax_category"],
+              "properties": {
+                "taxable_amount": { "type": "number" },
+                "tax_amount": { "type": "number" },
+                "tax_category": {
+                  "type": "object",
+                  "required": ["id", "percent"],
+                  "properties": {
+                    "id": { "type": "string", "example": "STANDARD_VAT" },
+                    "percent": { "type": "number", "example": 7.5 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "allowance_charge": {
+      "type": "array",
+      "description": "Optional (non-mandatory) - document-level discounts/charges.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "charge_indicator": { "type": "boolean", "description": "false = allowance/discount, true = charge." },
+          "allowance_charge_reason": { "type": "string" },
+          "amount": { "type": "number" },
+          "multiplier_factor_numeric": { "type": "number" },
+          "base_amount": { "type": "number" }
+        }
+      }
+    },
+    "tax_point_date": { "type": "string", "format": "date", "description": "Optional (non-mandatory)." },
+    "note": { "type": "string", "description": "Optional (non-mandatory) free-text note." }
+  },
+  "definitions": {
+    "party": {
+      "type": "object",
+      "required": ["party_name", "tin", "postal_address"],
+      "properties": {
+        "party_name": { "type": "string" },
+        "tin": { "type": "string", "example": "22047671-0001" },
+        "email": { "type": "string", "format": "email", "description": "Optional." },
+        "telephone": { "type": "string", "description": "Optional." },
+        "business_description": { "type": "string", "description": "Optional." },
+        "postal_address": {
+          "type": "object",
+          "required": ["street_name", "city_name", "country"],
+          "properties": {
+            "street_name": { "type": "string" },
+            "city_name": { "type": "string" },
+            "postal_zone": { "type": "string", "description": "Optional." },
+            "country": { "type": "string", "example": "NG" }
+          }
+        }
+      }
+    }
+  }
+}

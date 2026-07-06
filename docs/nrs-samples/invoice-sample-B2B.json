@@ -1,0 +1,103 @@
+{
+    "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
+    "irn": "INVB2B0001-4BB2353A-20260706",
+    "issue_date": "2026-07-06",
+    "due_date": "2026-08-05",
+    "issue_time": "09:00:00",
+    "invoice_type_code": "381",
+    "payment_status": "PENDING",
+    "document_currency_code": "NGN",
+    "tax_currency_code": "NGN",
+    "accounting_supplier_party": {
+        "party_name": "Virdi Nigeria Limited",
+        "tin": "22047671-0001",
+        "email": "info@virdi.com.ng",
+        "telephone": "+2348012345678",
+        "business_description": "General trade and services",
+        "postal_address": {
+            "street_name": "12 Marina Road",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "accounting_customer_party": {
+        "party_name": "Acme Trading Limited",
+        "tin": "10214563-0001",
+        "email": "accounts@acmetrading.ng",
+        "telephone": "+2348098765432",
+        "business_description": "Wholesale distribution",
+        "postal_address": {
+            "street_name": "5 Broad Street",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "legal_monetary_total": {
+        "line_extension_amount": 90000,
+        "allowance_total_amount": 5000,
+        "charge_total_amount": 0,
+        "tax_exclusive_amount": 85000,
+        "tax_inclusive_amount": 91375,
+        "payable_amount": 91375
+    },
+    "invoice_line": [
+        {
+            "hsn_code": "8471.30",
+            "product_category": "Electronics",
+            "invoiced_quantity": 10,
+            "line_extension_amount": 50000,
+            "item": {
+                "name": "Laptop computer",
+                "description": "Business laptop, 14-inch"
+            },
+            "price": {
+                "price_amount": 5000,
+                "base_quantity": 1,
+                "price_unit": "NGN per 1"
+            }
+        },
+        {
+            "hsn_code": "8517.12",
+            "product_category": "Electronics",
+            "invoiced_quantity": 5,
+            "line_extension_amount": 40000,
+            "item": {
+                "name": "Smartphone",
+                "description": "Android smartphone"
+            },
+            "price": {
+                "price_amount": 8000,
+                "base_quantity": 1,
+                "price_unit": "NGN per 1"
+            }
+        }
+    ],
+    "tax_total": [
+        {
+            "tax_amount": 6375,
+            "tax_subtotal": [
+                {
+                    "taxable_amount": 85000,
+                    "tax_amount": 6375,
+                    "tax_category": {
+                        "id": "STANDARD_VAT",
+                        "percent": 7.5
+                    }
+                }
+            ]
+        }
+    ],
+    "allowance_charge": [
+        {
+            "charge_indicator": false,
+            "allowance_charge_reason": "Volume discount",
+            "amount": 5000,
+            "multiplier_factor_numeric": 5.56,
+            "base_amount": 90000
+        }
+    ],
+    "tax_point_date": "2026-07-06",
+    "note": "Purchase order PO-2026-0456; net 30 days."
+}

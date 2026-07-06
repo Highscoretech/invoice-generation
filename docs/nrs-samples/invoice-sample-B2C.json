@@ -1,0 +1,79 @@
+{
+    "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
+    "irn": "INVB2C0001-4BB2353A-20260706",
+    "issue_date": "2026-07-06",
+    "due_date": "2026-08-05",
+    "issue_time": "09:00:00",
+    "invoice_type_code": "381",
+    "payment_status": "PENDING",
+    "document_currency_code": "NGN",
+    "tax_currency_code": "NGN",
+    "accounting_supplier_party": {
+        "party_name": "Virdi Nigeria Limited",
+        "tin": "22047671-0001",
+        "email": "info@virdi.com.ng",
+        "telephone": "+2348012345678",
+        "business_description": "General trade and services",
+        "postal_address": {
+            "street_name": "12 Marina Road",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "accounting_customer_party": {
+        "party_name": "John Adewale",
+        "tin": "00000000-0001",
+        "email": "john.adewale@example.com",
+        "telephone": "+2348011122233",
+        "business_description": "Individual consumer",
+        "postal_address": {
+            "street_name": "20 Allen Avenue",
+            "city_name": "Ikeja",
+            "postal_zone": "100281",
+            "country": "NG"
+        }
+    },
+    "legal_monetary_total": {
+        "line_extension_amount": 15000,
+        "allowance_total_amount": 0,
+        "charge_total_amount": 0,
+        "tax_exclusive_amount": 15000,
+        "tax_inclusive_amount": 16125,
+        "payable_amount": 16125
+    },
+    "invoice_line": [
+        {
+            "hsn_code": "6109.10",
+            "product_category": "Apparel",
+            "invoiced_quantity": 2,
+            "line_extension_amount": 15000,
+            "item": {
+                "name": "Cotton T-shirt",
+                "description": "Branded cotton T-shirt"
+            },
+            "price": {
+                "price_amount": 7500,
+                "base_quantity": 1,
+                "price_unit": "NGN per 1"
+            }
+        }
+    ],
+    "tax_total": [
+        {
+            "tax_amount": 1125,
+            "tax_subtotal": [
+                {
+                    "taxable_amount": 15000,
+                    "tax_amount": 1125,
+                    "tax_category": {
+                        "id": "STANDARD_VAT",
+                        "percent": 7.5
+                    }
+                }
+            ]
+        }
+    ],
+    "tax_point_date": "2026-07-06",
+    "note": "Retail sale - walk-in customer."
+}
