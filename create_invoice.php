@@ -38,10 +38,11 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         require_once 'includes/Crypto.php';
 
         // ── Server-side financial computation (security: never trust client
-        // price fields). The items catalogue is the authoritative source of
-        // pricing; all submitted rate/amount/subtotal/tax/total values are
-        // ignored and recomputed here. (Pentest finding H1.)
-        $VAT_RATE = 7.5; // server-controlled standard VAT (FIRS)
+        // price/amount/subtotal/total values). The items catalogue is the
+        // authoritative source of pricing; line amounts are recomputed here.
+        // (Pentest finding H1.) The tax rate and discount, by contrast, are
+        // legitimate accountant-entered business values — they are accepted but
+        // validated to a sane range.
         $postedItems = (isset($_POST['items']) && is_array($_POST['items'])) ? $_POST['items'] : [];
         $lineItems = [];
         $cSubtotal = 0.0;
@@ -71,7 +72,12 @@ if ($_POST && $_POST['action'] === 'create_invoice') {
         $cSubtotal  = round($cSubtotal, 2);
         // Discount is a legitimate business input, but bounded to [0, subtotal].
         $cDiscount  = round(max(0.0, min((float) ($_POST['discount_amount'] ?? 0), $cSubtotal)), 2);
-        $cTaxRate   = $VAT_RATE;
+        // Tax rate: the accountant's entered value (e.g. 7.5% standard VAT, 0%
+        // zero-rated/exempt, or another applicable rate), validated to 0–100%.
+        $cTaxRate   = (float) ($_POST['tax_rate'] ?? 7.5);
+        if ($cTaxRate < 0 || $cTaxRate > 100) {
+            $cTaxRate = 7.5;
+        }
         $cTaxExcl   = round($cSubtotal - $cDiscount, 2);
         $cTaxAmount = round($cTaxExcl * $cTaxRate / 100, 2);
         $cTaxIncl   = round($cTaxExcl + $cTaxAmount, 2);
