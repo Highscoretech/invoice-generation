@@ -206,16 +206,11 @@ class FirsClient
             $error = 'Unable to load FIRS public key: ' . openssl_error_string();
             return null;
         }
-        // Append a timestamp to the IRN before encryption, matching the official
-        // FIRS `firs-einvoicing` package's generateQRCode() exactly: the IRN is
-        // concatenated with `HHMMSS` (local time-of-day, colons stripped) plus the
-        // milliseconds, using a '.' separator — e.g. "INV...-20260706.143052789".
-        // The message encrypted is then { irn: "<irn>.<ts>", certificate }, RSA
-        // PKCS#1 v1.5 (openssl pkeyutl -encrypt), base64-encoded.
-        $mt  = microtime(true);
-        $sec = (int) $mt;
-        $ms  = (int) (($mt - $sec) * 1000);
-        $irnWithTimestamp = $irn . '.' . date('His', $sec) . $ms;
+        // Per the FIRS QR-code spec: the IRN is concatenated with a UNIX
+        // timestamp (seconds) using a '.' separator before encryption, e.g.
+        // "INV001-345SFG-20241011.1731618237". The message encrypted is then
+        // { irn: "<irn>.<unix_ts>", certificate }, RSA PKCS#1 v1.5, base64.
+        $irnWithTimestamp = $irn . '.' . time();
         $plain = json_encode([
             'irn'         => $irnWithTimestamp,
             'certificate' => $this->certificateB64,
