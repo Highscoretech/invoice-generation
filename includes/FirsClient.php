@@ -206,8 +206,12 @@ class FirsClient
             $error = 'Unable to load FIRS public key: ' . openssl_error_string();
             return null;
         }
+        // Per the FIRS QR-code spec: the IRN must be concatenated with a UNIX
+        // timestamp using a '.' separator BEFORE encryption, e.g.
+        // "INV001-345SFG-20241011.1731618237". The message encrypted is then
+        // { irn: "<irn>.<unix_ts>", certificate }.
         $plain = json_encode([
-            'irn'         => $irn,
+            'irn'         => $irn . '.' . time(),
             'certificate' => $this->certificateB64,
         ], JSON_UNESCAPED_SLASHES);
 

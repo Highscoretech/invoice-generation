@@ -82,8 +82,10 @@ flowchart LR
    the **APP key** → `200 OK`.
 4. **Sign** — `POST /api/v1/invoice/sign` (APP key) → `201 Created`; the invoice
    is registered/signed and appears in the taxpayer's NRS account.
-5. **QR** — the FIRS QR is generated **locally**: RSA/PKCS#1-encrypt
-   `{ irn, certificate }` with the FIRS public key, then Base64 (no third party).
+5. **QR** — the FIRS QR is generated **locally** per the FIRS QR-code spec:
+   the IRN is concatenated with a UNIX timestamp (`<irn>.<unix_ts>`), then
+   `{ irn: "<irn>.<ts>", certificate }` is RSA/PKCS#1-encrypted with the FIRS
+   public key and Base64-encoded (no third-party service).
 6. **Transmit** — `POST /api/v1/invoice/transmit/{IRN}` using the **SI key**
    (4-corner exchange to the buyer's access point).
 7. **Webhook (async)** — NRS calls back `POST /api/v1/webhook/firs`
@@ -195,8 +197,9 @@ No external cache/broker: retry/confirm work is queued in DB columns
    `INVxxxx-4BB2353A-20260701`); persisted and reused on every retry.
 2. **Validate** — `POST /api/v1/invoice/validate` (APP key). Status → `validated`.
 3. **Sign** — `POST /api/v1/invoice/sign` (APP key). Status → `signed`.
-4. **QR** — JSON `{irn, certificate}` → RSA/PKCS#1 encrypt with FIRS public key →
-   base64. Stored in `qr_data`, rendered locally on the invoice.
+4. **QR** — JSON `{irn: "<irn>.<unix_ts>", certificate}` (IRN + UNIX timestamp,
+   per the FIRS QR spec) → RSA/PKCS#1 encrypt with FIRS public key → base64.
+   Stored in `qr_data`, rendered locally on the invoice.
 5. **Transmit** — `POST /api/v1/invoice/transmit/{IRN}` (SI key). On success → `transmitted`.
 
 Stage gating uses the persisted timestamps, so a retry resumes at the failed
