@@ -1,247 +1,358 @@
 <?php
-// Public page — accessible without logging in (NRS requirement). The auth
-// include only starts the session so the shared layout can detect staff users.
+// Public API reference page (no login required - NRS requirement). The auth
+// include only starts the secure session used site-wide.
 require_once 'includes/auth.php';
-$page_title = 'API Documentation';
-include 'includes/header.php';
+$host = $_SERVER['HTTP_HOST'] ?? 'test.virdi.biz';
+$base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . $host;
 
-$base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'your-domain');
-?>
-<div class="pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">API Documentation</h1>
-    <p class="text-muted">Endpoints exposed by the e-invoice middleware. Customers integrate against these to submit
-        invoices and track their FIRS status without touching the government portal directly.</p>
-</div>
-
+/** Lightweight JSON syntax highlighter for the dark code blocks. */
+function hljson(string $json): string {
+    $e = htmlspecialchars($json, ENT_QUOTES);
+    $e = preg_replace('/(&quot;[^&]*?&quot;)(\s*:)/', '<span class="k">$1</span>$2', $e);   // keys
+    $e = preg_replace('/(:\s*)(&quot;[^&]*?&quot;)/', '$1<span class="s">$2</span>', $e);    // string values
+    $e = preg_replace('/(:\s*)(-?\d+\.?\d*)/', '$1<span class="n">$2</span>', $e);           // numbers
+    $e = preg_replace('/\b(true|false|null)\b/', '<span class="b">$1</span>', $e);           // literals
+    return $e;
+}
+function hlbash(string $cmd): string {
+    $e = htmlspecialchars($cmd, ENT_QUOTES);
+    $e = preg_replace('/(&quot;[^&]*?&quot;)/', '<span class="s">$1</span>', $e);
+    $e = preg_replace('/\b(curl|-X|-H|-d)\b/', '<span class="kw">$1</span>', $e);
+    $e = preg_replace('/\b(GET|POST)\b/', '<span class="mkw">$1</span>', $e);
+    return $e;
+}
+?><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Reference - Virdi E-Invoice</title>
 <style>
-    .endpoint { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:20px; margin-bottom:20px; }
-    .method { font-weight:700; padding:3px 10px; border-radius:6px; color:#fff; font-size:.8rem; }
-    .m-get{background:#10b981;} .m-post{background:#3b82f6;}
-    .endpoint pre { background:#0f172a; color:#e2e8f0; padding:14px; border-radius:8px; overflow:auto; font-size:.8rem; }
-    .endpoint code.path { font-size:1rem; }
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#1b2230; --muted:#69707e; --faint:#9aa2b1;
+    --line:#e6e9ef; --line2:#eef1f6; --accent:#0d7a3f; --link:#1a56db;
+    --mono:'SF Mono','SFMono-Regular',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace;
+    --code-bg:#0d1117; --req:#e5484d; --code-num:#7ee787;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;line-height:1.6;}
+  code,pre{font-family:var(--mono);}
+  a{color:var(--link);text-decoration:none;} a:hover{text-decoration:underline;}
+  .topbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);}
+  .topbar .in{max-width:960px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;}
+  .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
+  .pill{font-size:.68rem;font-weight:600;color:var(--muted);background:#eef1f6;border-radius:20px;padding:2px 9px;letter-spacing:.02em;}
+  .btn{border:1px solid var(--line);border-radius:8px;padding:7px 15px;font-weight:600;font-size:.85rem;color:var(--ink);background:#fff;}
+  .btn:hover{background:#f6f8fb;text-decoration:none;}
+  .wrap{max-width:960px;margin:0 auto;padding:38px 24px 80px;}
+  h1{font-size:2rem;font-weight:800;letter-spacing:-.01em;margin:0 0 12px;}
+  .lead{color:var(--muted);font-size:1.02rem;max-width:720px;margin:0 0 26px;}
+  .lead .hl{color:var(--accent);font-weight:600;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;}
+  .lbl{font-size:.68rem;font-weight:700;letter-spacing:.09em;color:var(--faint);text-transform:uppercase;margin-bottom:9px;}
+  .mono{font-family:var(--mono);font-size:.9rem;}
+  .codes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px;margin-top:4px;}
+  .codes div{font-size:.92rem;} .codes b{color:#4f46e5;font-family:var(--mono);margin-right:8px;}
+  h2.sec{font-size:1.25rem;font-weight:700;margin:38px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .ep{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:22px;overflow:hidden;}
+  .ep-h{display:flex;align-items:center;gap:12px;padding:15px 20px;}
+  .m{font-size:.72rem;font-weight:800;letter-spacing:.03em;padding:4px 9px;border-radius:6px;text-transform:uppercase;}
+  .m.get{background:#e8f0fe;color:#1a56db;} .m.post{background:#e6f6ec;color:#0d7a3f;}
+  .path{font-family:var(--mono);font-weight:700;font-size:1rem;}
+  .ep-b{padding:0 20px 20px;border-top:1px solid var(--line2);}
+  .ep-b .desc{color:var(--muted);margin:16px 0 8px;}
+  table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:.88rem;}
+  thead th{background:#f6f8fb;color:var(--muted);font-weight:600;text-align:left;padding:8px 12px;border:1px solid var(--line);border-left:none;border-right:none;}
+  tbody td{padding:8px 12px;border-bottom:1px solid var(--line2);vertical-align:top;}
+  td.p{font-family:var(--mono);font-size:.83rem;color:var(--ink);white-space:nowrap;}
+  td.t{font-style:italic;color:var(--faint);white-space:nowrap;}
+  .rq{color:var(--req);font-weight:700;}
+  pre{background:var(--code-bg);color:#e6edf3;border-radius:9px;padding:14px 16px;overflow-x:auto;
+    font-size:.82rem;line-height:1.55;margin:6px 0 16px;}
+  pre .k{color:#79c0ff;} pre .s{color:#a5d6ff;} pre .n{color:var(--code-num);} pre .b{color:#ff7b72;}
+  pre .kw{color:#ff7b72;} pre .mkw{color:#d2a8ff;font-weight:700;}
+  @media(max-width:720px){.grid2,.codes{grid-template-columns:1fr;}.wrap{padding:24px 16px 60px;}}
 </style>
+</head>
+<body>
 
-<div class="endpoint">
-    <h5>Authentication</h5>
-    <p>Every customer endpoint (except health) requires two headers issued when your API client is provisioned:</p>
-    <pre>x-client-key: ak_xxxxxxxxxxxxxxxx
-x-client-secret: sk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
-    <p class="mb-0 text-muted">Secrets are stored only as bcrypt hashes; the plaintext secret is shown once at
-        provisioning time. Provision a client with
-        <code>php provision_api_client.php "Customer Name"</code>.</p>
-</div>
+<div class="topbar"><div class="in">
+  <div class="brand"><span class="logo">V</span> Virdi E-Invoice <span class="pill">API v1</span></div>
+  <a class="btn" href="login.php">Sign in &rarr;</a>
+</div></div>
 
-<div class="endpoint">
-    <span class="method m-get">GET</span> <code class="path">/api/v1/health</code>
-    <p class="mt-2">Liveness probe. No authentication.</p>
-    <strong>200 OK</strong>
-    <pre>{ "healthy": true, "service": "einvoice-middleware", "time": "2026-06-02T15:40:12+01:00" }</pre>
-</div>
+<div class="wrap">
+  <h1>API Reference</h1>
+  <p class="lead">The <span class="hl">Virdi E-Invoice</span> API lets you submit, sign, and manage
+    <span class="hl">FIRS</span>-compliant e-invoices programmatically. All fields follow the
+    <span class="hl">FIRS / NRS BIS 3.0</span> (Business Invoice Standard).</p>
 
-<div class="endpoint">
-    <span class="method m-post">POST</span> <code class="path">/api/v1/invoices</code>
-    <p class="mt-2">Accept an invoice from a customer system. The app creates the invoice, builds the IRN,
-        validates and signs it with FIRS, generates the signed QR, and transmits it. The call is
-        <strong>idempotent</strong> on <code>reference</code> — replaying it never creates a duplicate.</p>
-    <p class="mb-1">The invoice body follows the <strong>FIRS / NRS BIS 3.0</strong> standard.
-    Every field marked <code>// required</code> below is mandatory and enforced by the NRS
-    <code>validate</code> endpoint — this exact structure returns <code>200 {ok:true}</code>
-    on the NRS sandbox. Fields marked <code>// optional</code> may be omitted.
-    <code>irn</code> and <code>business_id</code> are generated by the server (anything you
-    send for them is overwritten).</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="lbl">Base URL</div>
+      <div class="mono"><?php echo htmlspecialchars($base); ?></div>
+      <div style="color:var(--faint);font-size:.85rem;margin-top:8px;">All v1 endpoints are prefixed with <span class="mono">/api/v1</span></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Authentication</div>
+      <div class="mono">x-client-key: ak_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;<br>x-client-secret: sk_&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</div>
+      <div style="color:var(--faint);font-size:.85rem;margin-top:8px;">Provisioned per customer (bcrypt-hashed). The <span class="mono">health</span> endpoint needs no auth.</div>
+    </div>
+  </div>
 
-    <strong>Request body — FIRS/NRS BIS 3.0 invoice</strong>
-    <pre>{
-  "reference": "ACME-2001",                       // optional  (idempotency key; else derived)
-  "irn": "&lt;server-generated&gt;",                   // set by server
-  "business_id": "&lt;server-generated&gt;",           // set by server
-  "issue_date": "2026-07-06",                     // required
-  "invoice_type_code": "381",                     // required  (381 = commercial, 380 = credit note, ...)
-  "document_currency_code": "NGN",                // required
-  "tax_currency_code": "NGN",                     // required
-  "due_date": "2026-08-05",                       // optional
-  "issue_time": "09:00:00",                       // optional
-  "payment_status": "PENDING",                    // optional
-  "accounting_supplier_party": {                  // required
-    "party_name": "Virdi Nigeria Limited",        // required
-    "tin": "22047671-0001",                       // required
-    "email": "info@virdi.com.ng",                 // required
-    "telephone": "+2348012345678",                // optional
-    "business_description": "General trade",       // optional
-    "postal_address": {
-      "street_name": "12 Marina Road",            // required
-      "city_name": "Lagos",                       // required
-      "postal_zone": "100001",                    // required
-      "country": "NG"                             // required
-    }
+  <div class="card" style="margin-bottom:8px;">
+    <div class="lbl">FIRS Invoice Type Codes</div>
+    <div class="codes">
+      <div><b>380</b>Standard Invoice</div>
+      <div><b>381</b>Credit Note</div>
+      <div><b>383</b>Debit Note</div>
+      <div><b>386</b>Prepayment Invoice</div>
+      <div><b>389</b>Self-billed Invoice</div>
+      <div><b>396</b>Invoice Request</div>
+      <div><b>751</b>Invoice Information</div>
+    </div>
+  </div>
+
+  <!-- ============================== INVOICES ============================== -->
+  <h2 class="sec">Invoices</h2>
+
+  <div class="ep">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices</span></div>
+    <div class="ep-b">
+      <p class="desc">Create and submit a new FIRS/NRS-compliant invoice. The middleware builds the IRN,
+        validates and signs the payload with FIRS, generates the QR code, and transmits it to the NRS gateway.
+        Returns the IRN and status immediately; final FIRS delivery is confirmed asynchronously. Send the full
+        FIRS BIS 3.0 body below.</p>
+      <div class="lbl" style="margin-top:6px;">Request Body Fields (<span class="rq">*</span> = required)</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+        <?php
+        $fields = [
+          ['business_id','string',1,'FIRS business UUID. Set by the server from your entity profile.'],
+          ['irn','string',1,'Invoice Reference Number - generated by the server (ALL UPPERCASE, letters/digits/hyphens).'],
+          ['issue_date','string',1,'Issue date (YYYY-MM-DD).'],
+          ['invoice_type_code','string',1,'FIRS invoice type code - see table above (e.g. 381).'],
+          ['document_currency_code','string',1,'ISO 4217 currency code (e.g. NGN).'],
+          ['tax_currency_code','string',1,'Currency used for tax amounts (e.g. NGN).'],
+          ['accounting_supplier_party.party_name','string',1,'Supplier legal name.'],
+          ['accounting_supplier_party.tin','string',1,'Supplier TIN (e.g. 22047671-0001).'],
+          ['accounting_supplier_party.email','string',1,'Supplier contact email.'],
+          ['accounting_supplier_party.postal_address','object',1,'street_name, city_name, postal_zone, country (all required).'],
+          ['accounting_supplier_party.telephone','string',0,'Supplier phone (country code, e.g. +234) - optional.'],
+          ['accounting_supplier_party.business_description','string',0,'Brief description of the supplier business - optional.'],
+          ['accounting_customer_party.party_name','string',1,'Buyer legal name.'],
+          ['accounting_customer_party.tin','string',1,'Buyer TIN (e.g. 12345678-0001).'],
+          ['accounting_customer_party.email','string',1,'Buyer contact email.'],
+          ['accounting_customer_party.postal_address','object',1,'street_name, city_name, postal_zone, country (all required).'],
+          ['accounting_customer_party.telephone','string',0,'Buyer phone (country code, e.g. +234) - optional.'],
+          ['legal_monetary_total.line_extension_amount','number',1,'Sum of all line amounts before tax.'],
+          ['legal_monetary_total.tax_exclusive_amount','number',1,'Total amount excluding tax.'],
+          ['legal_monetary_total.tax_inclusive_amount','number',1,'Total amount including tax.'],
+          ['legal_monetary_total.payable_amount','number',1,'Final amount payable.'],
+          ['legal_monetary_total.allowance_total_amount','number',0,'Total discounts - optional, default 0.'],
+          ['legal_monetary_total.charge_total_amount','number',0,'Total charges - optional, default 0.'],
+          ['invoice_line[].hsn_code','string',1,'FIRS HSN / service code (e.g. 8517.12).'],
+          ['invoice_line[].product_category','string',1,'Product or service category.'],
+          ['invoice_line[].invoiced_quantity','number',1,'Quantity.'],
+          ['invoice_line[].line_extension_amount','number',1,'quantity x unit price.'],
+          ['invoice_line[].item.name','string',1,'Item name.'],
+          ['invoice_line[].item.description','string',1,'Item description.'],
+          ['invoice_line[].price.price_amount','number',1,'Unit price in Naira.'],
+          ['invoice_line[].price.base_quantity','number',1,'Base quantity (usually 1).'],
+          ['invoice_line[].price.price_unit','string',1,'Price unit label (e.g. NGN per 1).'],
+          ['tax_total[].tax_amount','number',1,'Total tax amount.'],
+          ['tax_total[].tax_subtotal[].taxable_amount','number',1,'Taxable base amount.'],
+          ['tax_total[].tax_subtotal[].tax_amount','number',1,'Tax on this subtotal.'],
+          ['tax_total[].tax_subtotal[].tax_category.id','string',1,'FIRS tax category: STANDARD_VAT, ZERO_RATED, EXEMPTED.'],
+          ['tax_total[].tax_subtotal[].tax_category.percent','number',1,'Tax rate (e.g. 7.5).'],
+          ['reference','string',0,'Your idempotency key - optional (else derived from the payload).'],
+          ['due_date','string',0,'Payment due date (YYYY-MM-DD) - optional.'],
+          ['issue_time','string',0,'Issue time (HH:MM:SS) - optional.'],
+          ['payment_status','string',0,'PENDING | PAID | PARTIAL - optional, defaults to PENDING.'],
+          ['allowance_charge[]','array',0,'Document-level discount/charge (charge_indicator, allowance_charge_reason, amount, base_amount) - optional.'],
+          ['tax_point_date','string',0,'Tax point date (YYYY-MM-DD) - optional.'],
+          ['note','string',0,'Free-text note - optional.'],
+        ];
+        foreach ($fields as [$p,$t,$req,$d]) {
+          echo '<tr><td class="p">'.htmlspecialchars($p).($req?' <span class="rq">*</span>':'').'</td>'
+             . '<td class="t">'.$t.'</td><td>'.htmlspecialchars($d).'</td></tr>';
+        }
+        ?>
+        </tbody>
+      </table>
+
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X POST "'.$base.'/api/v1/invoices" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••" \\
+  -H "Content-Type: application/json" \\
+  -d \'{…}\''); ?></pre>
+
+      <div class="lbl">Request Body</div>
+<pre><?php echo hljson('{
+  "reference": "ACME-2001",
+  "issue_date": "2026-07-06",
+  "due_date": "2026-08-05",
+  "issue_time": "09:00:00",
+  "invoice_type_code": "381",
+  "payment_status": "PENDING",
+  "document_currency_code": "NGN",
+  "tax_currency_code": "NGN",
+  "accounting_supplier_party": {
+    "party_name": "Virdi Nigeria Limited",
+    "tin": "22047671-0001",
+    "email": "info@virdi.com.ng",
+    "telephone": "+2348012345678",
+    "business_description": "General trade",
+    "postal_address": { "street_name": "12 Marina Road", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
   },
-  "accounting_customer_party": {                  // required
-    "party_name": "Acme Trading Limited",         // required
-    "tin": "10214563-0001",                       // required
-    "email": "accounts@acme.ng",                  // required
-    "telephone": "+2348098765432",                // optional
-    "postal_address": {                           // required
-      "street_name": "5 Broad Street", "city_name": "Lagos",
-      "postal_zone": "100001", "country": "NG"
-    }
+  "accounting_customer_party": {
+    "party_name": "Acme Trading Limited",
+    "tin": "12345678-0001",
+    "email": "accounts@acme.ng",
+    "telephone": "+2348098765432",
+    "postal_address": { "street_name": "5 Broad Street", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
   },
-  "legal_monetary_total": {                       // required
-    "line_extension_amount": 100000,              // required
-    "tax_exclusive_amount": 100000,               // required
-    "tax_inclusive_amount": 107500,               // required
-    "payable_amount": 107500,                     // required
-    "allowance_total_amount": 0,                  // optional (total discounts)
-    "charge_total_amount": 0                       // optional (total charges)
+  "legal_monetary_total": {
+    "line_extension_amount": 100000,
+    "tax_exclusive_amount": 100000,
+    "tax_inclusive_amount": 107500,
+    "payable_amount": 107500
   },
-  "invoice_line": [                               // required (at least one)
+  "invoice_line": [
     {
-      "hsn_code": "8471.30",                      // required
-      "product_category": "Electronics",          // required
-      "invoiced_quantity": 1,                     // required
-      "line_extension_amount": 100000,            // required
-      "item": {
-        "name": "Laptop computer",                // required
-        "description": "Business laptop, 14-inch"  // required
-      },
-      "price": {
-        "price_amount": 100000,                   // required
-        "base_quantity": 1,                       // required
-        "price_unit": "NGN per 1"                 // required
-      }
+      "hsn_code": "8517.12",
+      "product_category": "Electronics",
+      "invoiced_quantity": 1,
+      "line_extension_amount": 100000,
+      "item": { "name": "Smartphone", "description": "Android smartphone" },
+      "price": { "price_amount": 100000, "base_quantity": 1, "price_unit": "NGN per 1" }
     }
   ],
-  "tax_total": [                                  // required
+  "tax_total": [
     {
-      "tax_amount": 7500,                         // required
+      "tax_amount": 7500,
       "tax_subtotal": [
-        {
-          "taxable_amount": 100000,               // required
-          "tax_amount": 7500,                     // required
-          "tax_category": {
-            "id": "STANDARD_VAT",                 // required
-            "percent": 7.5                        // required
-          }
-        }
+        { "taxable_amount": 100000, "tax_amount": 7500, "tax_category": { "id": "STANDARD_VAT", "percent": 7.5 } }
       ]
     }
-  ],
-  "allowance_charge": [                           // optional (document-level discount/charge)
-    { "charge_indicator": false, "allowance_charge_reason": "Volume discount",
-      "amount": 5000, "multiplier_factor_numeric": 5, "base_amount": 100000 }
-  ],
-  "tax_point_date": "2026-07-06",                 // optional
-  "note": "Purchase order PO-2026-0456"           // optional
-}</pre>
+  ]
+}'); ?></pre>
 
-    <p class="mb-1"><strong>Mandatory fields</strong> (NRS-enforced): <code>issue_date</code>,
-    <code>invoice_type_code</code>, <code>document_currency_code</code>, <code>tax_currency_code</code>;
-    supplier &amp; customer <code>party_name</code>, <code>tin</code>, <code>email</code> and full
-    <code>postal_address</code> (<code>street_name</code>, <code>city_name</code>, <code>postal_zone</code>,
-    <code>country</code>); <code>legal_monetary_total</code>
-    (<code>line_extension_amount</code>, <code>tax_exclusive_amount</code>, <code>tax_inclusive_amount</code>,
-    <code>payable_amount</code>); each <code>invoice_line</code> (<code>hsn_code</code>,
-    <code>product_category</code>, <code>invoiced_quantity</code>, <code>line_extension_amount</code>,
-    <code>item.name</code>, <code>item.description</code>, <code>price.price_amount</code>,
-    <code>price.base_quantity</code>, <code>price.price_unit</code>); and <code>tax_total</code>
-    (<code>tax_amount</code>, <code>tax_subtotal.taxable_amount</code>, <code>tax_subtotal.tax_amount</code>,
-    <code>tax_category.id</code>, <code>tax_category.percent</code>).</p>
-
-    <details class="mt-2"><summary class="text-muted" style="cursor:pointer;">Optional convenience format
-    (simplified body the middleware maps to the BIS 3.0 payload above)</summary>
-    <pre>{
-  "reference": "ACME-2001",              // required (idempotency key)
-  "invoice": { "number": "INV-ACME-2001", "date": "2026-07-06", "due_date": "2026-08-05" },
-  "customer": { "name": "Acme Buyer Ltd", "tin": "12345678-0001", "email": "buyer@acme.test",
-                "address": "5 Marina", "city": "Lagos", "country": "Nigeria", "postal_zone": "100001" },
-  "items": [ { "name": "Consulting", "quantity": 2, "rate": 50000, "hsn_code": "8517.12", "category": "Services" } ],
-  "tax_rate": 7.5
-}</pre>
-    <p class="text-muted mb-0">This is a non-standard shortcut for simple integrations; the server fills any
-    missing NRS-mandatory fields with valid defaults before submitting the BIS 3.0 payload above.</p></details>
-
-    <strong>201 / 202</strong> (201 transmitted, 202 accepted &amp; queued for retry)
-    <pre>{
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
   "reference": "ACME-2001",
-  "invoice_id": 3,
-  "irn": "INVACME2001-5AF9E02D-20260602",
-  "firs_status": "transmitted",          // or "queued_retry"
+  "invoice_id": 42,
+  "irn": "ACME2001-4BB2353A-20260706",
+  "firs_status": "transmitted",
   "qr_present": true,
   "status_url": "/api/v1/invoices/ACME-2001/status"
-}</pre>
-    <p class="text-muted mb-0">Errors: <code>401</code> bad credentials, <code>422</code> validation, <code>500</code> server.</p>
-</div>
+}'); ?></pre>
+      <p style="color:var(--faint);font-size:.85rem;">Returns <span class="mono">201</span> when transmitted,
+        <span class="mono">202</span> when accepted &amp; queued for retry. Errors: <span class="mono">401</span>
+        bad credentials, <span class="mono">422</span> validation.</p>
+    </div>
+  </div>
 
-<div class="endpoint">
-    <span class="method m-get">GET</span> <code class="path">/api/v1/invoices/{reference}/status</code>
-    <p class="mt-2">Return the current FIRS status for a previously submitted invoice.</p>
-    <strong>200 OK</strong>
-    <pre>{
+  <div class="ep">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/:reference/status</span></div>
+    <div class="ep-b">
+      <p class="desc">Check the live FIRS status for a previously submitted invoice: pipeline status, retry
+        attempts, transmission time and any last error.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/invoices/ACME-2001/status" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
   "reference": "ACME-2001",
-  "invoice_id": 3,
-  "irn": "INVACME2001-5AF9E02D-20260602",
-  "firs_status": "queued_retry",
+  "invoice_id": 42,
+  "irn": "ACME2001-4BB2353A-20260706",
+  "firs_status": "transmitted",
   "attempts": 1,
-  "transmitted_at": null,
-  "next_retry_at": "2026-06-02 15:42:31",
-  "last_error": "unable to transmit ... access points are offline"
-}</pre>
-</div>
+  "transmitted_at": "2026-07-06 09:31:00",
+  "next_retry_at": null,
+  "last_error": null
+}'); ?></pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-    <h5>FIRS / NRS (MBS) portal endpoints</h5>
-    <p>Each submitted invoice flows through these government portal endpoints. FIRS issues two credential
-        sets: the <strong>APP</strong> (application) key and the <strong>SI</strong> (system-integrator) key;
-        the table shows which each endpoint uses. All calls are logged in <code>firs_transmissions</code>.</p>
-    <table class="table table-sm">
-        <thead><tr><th>Stage</th><th>Portal endpoint</th><th>Key</th><th>Verified</th></tr></thead>
-        <tbody>
-            <tr><td>Health</td><td><code>GET /api</code></td><td>—</td><td><span class="badge bg-success">200</span></td></tr>
-            <tr><td>Entity / business lookup</td><td><code>GET /api/v1/entity/{id}</code></td><td>SI</td><td><span class="badge bg-success">200</span></td></tr>
-            <tr><td>Reference data</td><td><code>GET /api/v1/invoice/resources/{name}</code> (tax-categories, invoice-types, currencies, vat-exemptions)</td><td>SI</td><td><span class="badge bg-success">200</span></td></tr>
-            <tr><td>Validate</td><td><code>POST /api/v1/invoice/validate</code></td><td>APP</td><td><span class="badge bg-success">200</span></td></tr>
-            <tr><td>Sign</td><td><code>POST /api/v1/invoice/sign</code></td><td>APP</td><td><span class="badge bg-success">201</span></td></tr>
-            <tr><td>Transmit</td><td><code>POST /api/v1/invoice/transmit/{IRN}</code></td><td>SI</td><td><span class="badge bg-warning text-dark">AP-dependent</span></td></tr>
-            <tr><td>Confirm status</td><td><code>GET /api/v1/invoice/confirm/{IRN}</code></td><td>APP</td><td><span class="badge bg-success">200</span></td></tr>
-            <tr><td>Taxpayer-auth / Download / Update / Exchange / Report</td><td><code>taxpayer-auth</code>, <code>/invoice/{download|update|exchange|report}</code></td><td>APP</td><td><span class="badge bg-secondary">as needed</span></td></tr>
-        </tbody>
-    </table>
-    <p class="mb-0 text-muted">IRN is built from the entity's <code>irn_template</code>. The QR payload is
-        <code>{ irn: "&lt;IRN&gt;.&lt;timestamp&gt;", certificate }</code>, RSA-encrypted (PKCS#1 v1.5) with the FIRS
-        public key and base64-encoded, exactly per the FIRS QR-code spec.</p>
-</div>
+  <div class="ep">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/health</span></div>
+    <div class="ep-b">
+      <p class="desc">Liveness probe. No authentication required.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/health"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "healthy": true, "service": "einvoice-middleware", "time": "2026-07-06T09:30:00+01:00" }'); ?></pre>
+    </div>
+  </div>
 
-<div class="endpoint">
-    <h5>Webhooks</h5>
-    <p>Invoice status is reported two ways, so a result is never lost: FIRS pushes events to us, and we also
-        actively poll FIRS's <code>confirm</code> endpoint. Whenever an invoice changes state we call the
-        customer back.</p>
+  <!-- ============================== WEBHOOKS ============================== -->
+  <h2 class="sec">Webhooks</h2>
 
-    <h6 class="mt-3">Inbound — FIRS → this app</h6>
-    <p><span class="method m-post">POST</span> <code class="path">/api/v1/webhook/firs</code> —
-        register this URL with FIRS. Authenticated by a shared secret: an <code>x-firs-signature</code>
-        HMAC header or <code>?token=</code>, both checked against <code>FIRS_WEBHOOK_SECRET</code>. Every event is
-        logged to <code>firs_webhook_events</code>; the authoritative status is then re-pulled from
-        <code>GET /api/v1/invoice/confirm/{IRN}</code> (fields <code>entry_status</code>,
-        <code>transmitted</code>, <code>delivered</code>) so a forged push can't change state on its own.</p>
+  <div class="ep">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/webhook/firs</span></div>
+    <div class="ep-b">
+      <p class="desc">Inbound endpoint that receives FIRS status push events. Register this URL with FIRS.
+        Authenticated by a shared secret - an <span class="mono">x-firs-signature</span> HMAC header or
+        <span class="mono">?token=</span>. Every event is logged; the authoritative status is then re-pulled
+        from the FIRS confirm endpoint, so a forged push cannot change state on its own.</p>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "received": true, "irn": "ACME2001-4BB2353A-20260706", "matched_invoice": 42 }'); ?></pre>
+    </div>
+  </div>
 
-    <h6 class="mt-3">Outbound — this app → your system</h6>
-    <p>We <span class="method m-post">POST</span> to your <code>webhook_url</code> on every status change. The body
-        is signed so you can verify it came from us:</p>
-    <pre>x-webhook-event: invoice.delivered
-x-webhook-signature: sha256=&lt;hmac&gt;          // HMAC-SHA256(body, your webhook_secret)
+  <div class="ep">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">Outbound &rarr; your webhook_url</span></div>
+    <div class="ep-b">
+      <p class="desc">On every status change the middleware POSTs to your configured <span class="mono">webhook_url</span>.
+        The body is signed with HMAC-SHA256 so you can verify it came from us - recompute
+        <span class="mono">HMAC-SHA256(rawBody, webhook_secret)</span> and compare to the
+        <span class="mono">x-webhook-signature</span> header.</p>
+      <div class="lbl">Headers &amp; Body</div>
+<pre><?php echo htmlspecialchars('x-webhook-event: invoice.delivered
+x-webhook-signature: sha256=<hmac>'); ?>
 
-{
-  "event": "invoice.transmitted",     // or invoice.delivered / invoice.failed
+<?php echo hljson('{
+  "event": "invoice.transmitted",
   "reference": "ACME-2001",
-  "irn": "INVACME2001-5AF9E02D-20260602",
+  "irn": "ACME2001-4BB2353A-20260706",
   "firs_status": "transmitted",
   "transmitted": true,
   "delivered": false,
   "entry_status": "NEW_ENTRY"
-}</pre>
-    <p class="mb-0 text-muted">Verify: recompute <code>HMAC-SHA256(rawBody, webhook_secret)</code> and compare to the
-        header. Failed deliveries are retried with backoff (1/5/15/60 min) and logged in
-        <code>webhook_deliveries</code>. Re-send is handled by the same cron as transmit retries.</p>
-</div>
+}'); ?></pre>
+    </div>
+  </div>
 
-<?php include 'includes/footer.php'; ?>
+  <!-- ======================= FIRS PORTAL ENDPOINTS ======================= -->
+  <h2 class="sec">FIRS / NRS (MBS) Portal Endpoints</h2>
+  <div class="card">
+    <p style="color:var(--muted);margin-top:0;">Each submitted invoice flows through these government portal
+      endpoints. FIRS issues two credential sets: the <b>APP</b> key and the <b>SI</b> key.</p>
+    <table>
+      <thead><tr><th>Stage</th><th style="width:14%">Key</th><th>Endpoint</th></tr></thead>
+      <tbody>
+        <tr><td>Health</td><td class="t">-</td><td class="p">GET /api</td></tr>
+        <tr><td>Entity lookup</td><td class="t">SI</td><td class="p">GET /api/v1/entity/{id}</td></tr>
+        <tr><td>Reference data</td><td class="t">SI</td><td class="p">GET /api/v1/invoice/resources/{name}</td></tr>
+        <tr><td>Validate</td><td class="t">APP</td><td class="p">POST /api/v1/invoice/validate</td></tr>
+        <tr><td>Sign</td><td class="t">APP</td><td class="p">POST /api/v1/invoice/sign</td></tr>
+        <tr><td>Transmit</td><td class="t">SI</td><td class="p">POST /api/v1/invoice/transmit/{IRN}</td></tr>
+        <tr><td>Confirm status</td><td class="t">APP</td><td class="p">GET /api/v1/invoice/confirm/{IRN}</td></tr>
+      </tbody>
+    </table>
+    <p style="color:var(--faint);font-size:.85rem;margin-bottom:0;">The QR payload is
+      <span class="mono">{ irn: "&lt;IRN&gt;.&lt;unixTimestamp&gt;", certificate }</span>, RSA/PKCS#1 v1.5
+      encrypted with the FIRS public key and base64-encoded, per the FIRS QR-code spec.</p>
+  </div>
+
+</div>
+</body>
+</html>
