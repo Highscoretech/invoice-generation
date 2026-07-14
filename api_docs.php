@@ -1,17 +1,19 @@
 <?php
-// Public API reference page (no login required - NRS requirement). The auth
-// include only starts the secure session used site-wide.
+// API reference. Public (no login) -> standalone byteinvoice-style page.
+// Logged in -> rendered inside the normal operator layout, like any other page.
 require_once 'includes/auth.php';
+$auth = new Auth();
+$loggedIn = $auth->isLoggedIn();
 $host = $_SERVER['HTTP_HOST'] ?? 'test.virdi.biz';
 $base = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http') . '://' . $host;
 
 /** Lightweight JSON syntax highlighter for the dark code blocks. */
 function hljson(string $json): string {
     $e = htmlspecialchars($json, ENT_QUOTES);
-    $e = preg_replace('/(&quot;[^&]*?&quot;)(\s*:)/', '<span class="k">$1</span>$2', $e);   // keys
-    $e = preg_replace('/(:\s*)(&quot;[^&]*?&quot;)/', '$1<span class="s">$2</span>', $e);    // string values
-    $e = preg_replace('/(:\s*)(-?\d+\.?\d*)/', '$1<span class="n">$2</span>', $e);           // numbers
-    $e = preg_replace('/\b(true|false|null)\b/', '<span class="b">$1</span>', $e);           // literals
+    $e = preg_replace('/(&quot;[^&]*?&quot;)(\s*:)/', '<span class="k">$1</span>$2', $e);
+    $e = preg_replace('/(:\s*)(&quot;[^&]*?&quot;)/', '$1<span class="s">$2</span>', $e);
+    $e = preg_replace('/(:\s*)(-?\d+\.?\d*)/', '$1<span class="n">$2</span>', $e);
+    $e = preg_replace('/\b(true|false|null)\b/', '<span class="b">$1</span>', $e);
     return $e;
 }
 function hlbash(string $cmd): string {
@@ -21,71 +23,48 @@ function hlbash(string $cmd): string {
     $e = preg_replace('/\b(GET|POST)\b/', '<span class="mkw">$1</span>', $e);
     return $e;
 }
-?><!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>API Reference - Virdi E-Invoice</title>
-<style>
-  :root{
-    --bg:#f6f8fb; --card:#ffffff; --ink:#1b2230; --muted:#69707e; --faint:#9aa2b1;
-    --line:#e6e9ef; --line2:#eef1f6; --accent:#0d7a3f; --link:#1a56db;
-    --mono:'SF Mono','SFMono-Regular',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace;
-    --code-bg:#0d1117; --req:#e5484d; --code-num:#7ee787;
-  }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;
-    font-size:15px;line-height:1.6;}
-  code,pre{font-family:var(--mono);}
-  a{color:var(--link);text-decoration:none;} a:hover{text-decoration:underline;}
-  .topbar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--line);}
-  .topbar .in{max-width:960px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;}
-  .logo{width:30px;height:30px;border-radius:8px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
-  .pill{font-size:.68rem;font-weight:600;color:var(--muted);background:#eef1f6;border-radius:20px;padding:2px 9px;letter-spacing:.02em;}
-  .btn{border:1px solid var(--line);border-radius:8px;padding:7px 15px;font-weight:600;font-size:.85rem;color:var(--ink);background:#fff;}
-  .btn:hover{background:#f6f8fb;text-decoration:none;}
-  .wrap{max-width:960px;margin:0 auto;padding:38px 24px 80px;}
-  h1{font-size:2rem;font-weight:800;letter-spacing:-.01em;margin:0 0 12px;}
-  .lead{color:var(--muted);font-size:1.02rem;max-width:720px;margin:0 0 26px;}
-  .lead .hl{color:var(--accent);font-weight:600;}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;}
-  .lbl{font-size:.68rem;font-weight:700;letter-spacing:.09em;color:var(--faint);text-transform:uppercase;margin-bottom:9px;}
-  .mono{font-family:var(--mono);font-size:.9rem;}
-  .codes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px;margin-top:4px;}
-  .codes div{font-size:.92rem;} .codes b{color:#4f46e5;font-family:var(--mono);margin-right:8px;}
-  h2.sec{font-size:1.25rem;font-weight:700;margin:38px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);}
-  .ep{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:22px;overflow:hidden;}
-  .ep-h{display:flex;align-items:center;gap:12px;padding:15px 20px;}
-  .m{font-size:.72rem;font-weight:800;letter-spacing:.03em;padding:4px 9px;border-radius:6px;text-transform:uppercase;}
-  .m.get{background:#e8f0fe;color:#1a56db;} .m.post{background:#e6f6ec;color:#0d7a3f;}
-  .path{font-family:var(--mono);font-weight:700;font-size:1rem;}
-  .ep-b{padding:0 20px 20px;border-top:1px solid var(--line2);}
-  .ep-b .desc{color:var(--muted);margin:16px 0 8px;}
-  table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:.88rem;}
-  thead th{background:#f6f8fb;color:var(--muted);font-weight:600;text-align:left;padding:8px 12px;border:1px solid var(--line);border-left:none;border-right:none;}
-  tbody td{padding:8px 12px;border-bottom:1px solid var(--line2);vertical-align:top;}
-  td.p{font-family:var(--mono);font-size:.83rem;color:var(--ink);white-space:nowrap;}
-  td.t{font-style:italic;color:var(--faint);white-space:nowrap;}
-  .rq{color:var(--req);font-weight:700;}
-  pre{background:var(--code-bg);color:#e6edf3;border-radius:9px;padding:14px 16px;overflow-x:auto;
-    font-size:.82rem;line-height:1.55;margin:6px 0 16px;}
-  pre .k{color:#79c0ff;} pre .s{color:#a5d6ff;} pre .n{color:var(--code-num);} pre .b{color:#ff7b72;}
-  pre .kw{color:#ff7b72;} pre .mkw{color:#d2a8ff;font-weight:700;}
-  @media(max-width:720px){.grid2,.codes{grid-template-columns:1fr;}.wrap{padding:24px 16px 60px;}}
-</style>
-</head>
-<body>
 
-<div class="topbar"><div class="in">
-  <div class="brand"><span class="logo">V</span> Virdi E-Invoice <span class="pill">API v1</span></div>
-  <a class="btn" href="login.php">Sign in &rarr;</a>
-</div></div>
+// Scoped styles (everything under .apiref so the operator layout is untouched).
+$CSS = <<<CSS
+.apiref{--card:#ffffff;--ink:#1b2230;--muted:#69707e;--faint:#9aa2b1;--line:#e6e9ef;
+  --line2:#eef1f6;--accent:#0d7a3f;--link:#1a56db;--req:#e5484d;--code-bg:#0d1117;
+  --mono:'SF Mono','SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;color:var(--ink);}
+.apiref *{box-sizing:border-box;}
+.apiref .wrap{max-width:960px;margin:0 auto;padding:8px 4px 40px;}
+.apiref code,.apiref pre{font-family:var(--mono);}
+.apiref a{color:var(--link);text-decoration:none;}.apiref a:hover{text-decoration:underline;}
+.apiref h1{font-size:2rem;font-weight:800;letter-spacing:-.01em;margin:0 0 12px;color:var(--ink);}
+.apiref .lead{color:var(--muted);font-size:1.02rem;max-width:720px;margin:0 0 26px;}
+.apiref .lead .hl{color:var(--accent);font-weight:600;}
+.apiref .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px;}
+.apiref .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px;}
+.apiref .lbl{font-size:.68rem;font-weight:700;letter-spacing:.09em;color:var(--faint);text-transform:uppercase;margin-bottom:9px;}
+.apiref .mono{font-family:var(--mono);font-size:.9rem;}
+.apiref .codes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px;margin-top:4px;}
+.apiref .codes div{font-size:.92rem;}.apiref .codes b{color:#4f46e5;font-family:var(--mono);margin-right:8px;}
+.apiref h2.sec{font-size:1.25rem;font-weight:700;margin:38px 0 16px;padding-bottom:10px;border-bottom:1px solid var(--line);color:var(--ink);}
+.apiref .ep{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:22px;overflow:hidden;}
+.apiref .ep-h{display:flex;align-items:center;gap:12px;padding:15px 20px;}
+.apiref .m{font-size:.72rem;font-weight:800;letter-spacing:.03em;padding:4px 9px;border-radius:6px;text-transform:uppercase;}
+.apiref .m.get{background:#e8f0fe;color:#1a56db;}.apiref .m.post{background:#e6f6ec;color:#0d7a3f;}
+.apiref .path{font-family:var(--mono);font-weight:700;font-size:1rem;}
+.apiref .ep-b{padding:0 20px 20px;border-top:1px solid var(--line2);}
+.apiref .ep-b .desc{color:var(--muted);margin:16px 0 8px;}
+.apiref table{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:.88rem;}
+.apiref thead th{background:#f6f8fb;color:var(--muted);font-weight:600;text-align:left;padding:8px 12px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+.apiref tbody td{padding:8px 12px;border-bottom:1px solid var(--line2);vertical-align:top;}
+.apiref td.p{font-family:var(--mono);font-size:.83rem;color:var(--ink);}
+.apiref td.t{font-style:italic;color:var(--faint);white-space:nowrap;}
+.apiref .rq{color:var(--req);font-weight:700;}
+.apiref pre{background:var(--code-bg);color:#e6edf3;border-radius:9px;padding:14px 16px;overflow-x:auto;font-size:.82rem;line-height:1.55;margin:6px 0 16px;}
+.apiref pre .k{color:#79c0ff;}.apiref pre .s{color:#a5d6ff;}.apiref pre .n{color:#7ee787;}.apiref pre .b{color:#ff7b72;}
+.apiref pre .kw{color:#ff7b72;}.apiref pre .mkw{color:#d2a8ff;font-weight:700;}
+@media(max-width:720px){.apiref .grid2,.apiref .codes{grid-template-columns:1fr;}}
+CSS;
 
-<div class="wrap">
+// ── Build the shared content once ────────────────────────────────────────────
+ob_start(); ?>
+<div class="apiref"><div class="wrap">
   <h1>API Reference</h1>
   <p class="lead">The <span class="hl">Virdi E-Invoice</span> API lets you submit, sign, and manage
     <span class="hl">FIRS</span>-compliant e-invoices programmatically. All fields follow the
@@ -117,7 +96,6 @@ function hlbash(string $cmd): string {
     </div>
   </div>
 
-  <!-- ============================== INVOICES ============================== -->
   <h2 class="sec">Invoices</h2>
 
   <div class="ep">
@@ -293,7 +271,6 @@ function hlbash(string $cmd): string {
     </div>
   </div>
 
-  <!-- ============================== WEBHOOKS ============================== -->
   <h2 class="sec">Webhooks</h2>
 
   <div class="ep">
@@ -331,7 +308,6 @@ x-webhook-signature: sha256=<hmac>'); ?>
     </div>
   </div>
 
-  <!-- ======================= FIRS PORTAL ENDPOINTS ======================= -->
   <h2 class="sec">FIRS / NRS (MBS) Portal Endpoints</h2>
   <div class="card">
     <p style="color:var(--muted);margin-top:0;">Each submitted invoice flows through these government portal
@@ -353,6 +329,45 @@ x-webhook-signature: sha256=<hmac>'); ?>
       encrypted with the FIRS public key and base64-encoded, per the FIRS QR-code spec.</p>
   </div>
 
-</div>
+</div></div>
+<?php
+$content = ob_get_clean();
+
+if ($loggedIn) {
+    // Rendered inside the normal operator layout (sidebar), like any other page.
+    $page_title = 'API Documentation';
+    include 'includes/header.php';
+    echo "<style>\n$CSS\n</style>";
+    echo $content;
+    include 'includes/footer.php';
+} else {
+    // Standalone public docs page with its own top bar.
+    ?><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Reference - Virdi E-Invoice</title>
+<style>
+  body{margin:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1b2230;}
+  .apitop{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e6e9ef;}
+  .apitop .in{max-width:960px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+  .apitop .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;}
+  .apitop .logo{width:30px;height:30px;border-radius:8px;background:#0d7a3f;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
+  .apitop .pill{font-size:.68rem;font-weight:600;color:#69707e;background:#eef1f6;border-radius:20px;padding:2px 9px;}
+  .apitop .btn{border:1px solid #e6e9ef;border-radius:8px;padding:7px 15px;font-weight:600;font-size:.85rem;color:#1b2230;background:#fff;text-decoration:none;}
+  .apitop .btn:hover{background:#f6f8fb;}
+  .apiref .wrap{padding:38px 24px 80px;}
+<?php echo $CSS; ?>
+</style>
+</head>
+<body>
+<div class="apitop"><div class="in">
+  <div class="brand"><span class="logo">V</span> Virdi E-Invoice <span class="pill">API v1</span></div>
+  <a class="btn" href="login.php">Sign in &rarr;</a>
+</div></div>
+<?php echo $content; ?>
 </body>
 </html>
+<?php
+}
