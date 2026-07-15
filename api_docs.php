@@ -47,6 +47,7 @@ $CSS = <<<CSS
 .apiref .ep-h{display:flex;align-items:center;gap:12px;padding:15px 20px;}
 .apiref .m{font-size:.72rem;font-weight:800;letter-spacing:.03em;padding:4px 9px;border-radius:6px;text-transform:uppercase;}
 .apiref .m.get{background:#e8f0fe;color:#1a56db;}.apiref .m.post{background:#e6f6ec;color:#0d7a3f;}
+.apiref .m.patch{background:#fff3e0;color:#b06c08;}
 .apiref .path{font-family:var(--mono);font-weight:700;font-size:1rem;}
 .apiref .ep-b{padding:0 20px 20px;border-top:1px solid var(--line2);}
 .apiref .ep-b .desc{color:var(--muted);margin:16px 0 8px;}
@@ -268,6 +269,79 @@ ob_start(); ?>
 <pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/health"'); ?></pre>
       <div class="lbl">Response</div>
 <pre><?php echo hljson('{ "healthy": true, "service": "einvoice-middleware", "time": "2026-07-06T09:30:00+01:00" }'); ?></pre>
+    </div>
+  </div>
+
+  <h2 class="sec">Payments &amp; Reporting</h2>
+
+  <div class="ep">
+    <div class="ep-h"><span class="m patch">PATCH</span><span class="path">/api/v1/invoices/:reference/payment-status</span></div>
+    <div class="ep-b">
+      <p class="desc">Update the invoice payment status. Call this when the buyer pays.</p>
+      <div class="lbl">Request Body Fields (<span class="rq">*</span> = required)</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">payment_status <span class="rq">*</span></td><td class="t">string</td><td>PAID | PARTIAL | PENDING</td></tr>
+          <tr><td class="p">reference</td><td class="t">string</td><td>Payment transaction reference - optional.</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X PATCH "'.$base.'/api/v1/invoices/ACME-2001/payment-status" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••" \\
+  -H "Content-Type: application/json" \\
+  -d \'{…}\''); ?></pre>
+      <div class="lbl">Request Body</div>
+<pre><?php echo hljson('{
+  "payment_status": "PAID",
+  "reference": "TRX-9988"
+}'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "ok": true,
+  "reference": "ACME-2001",
+  "irn": "ACME2001-4BB2353A-20260706",
+  "payment_status": "PAID",
+  "transaction_reference": "TRX-9988"
+}'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices/:reference/report</span></div>
+    <div class="ep-b">
+      <p class="desc">Report the invoice VAT basis to FIRS/NRS (post-payment reporting).</p>
+      <div class="lbl">Request Body Fields (<span class="rq">*</span> = required)</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">vat_status</td><td class="t">string</td><td>STANDARD_VAT | ZERO_RATED | EXEMPT (default: STANDARD_VAT).</td></tr>
+          <tr><td class="p">vat_rate</td><td class="t">string</td><td>VAT rate as string (default: '7.5').</td></tr>
+          <tr><td class="p">other_taxes</td><td class="t">string</td><td>Other applicable taxes (default: '0').</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X POST "'.$base.'/api/v1/invoices/ACME-2001/report" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••" \\
+  -H "Content-Type: application/json" \\
+  -d \'{…}\''); ?></pre>
+      <div class="lbl">Request Body</div>
+<pre><?php echo hljson('{
+  "vat_status": "STANDARD_VAT",
+  "vat_rate": "7.5",
+  "other_taxes": "0"
+}'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "ok": true,
+  "reference": "ACME-2001",
+  "irn": "ACME2001-4BB2353A-20260706",
+  "vat_status": "STANDARD_VAT",
+  "vat_rate": "7.5",
+  "other_taxes": "0"
+}'); ?></pre>
     </div>
   </div>
 

@@ -464,4 +464,68 @@ if ($method === 'GET' && preg_match('#^v1/invoices/(.+)/status$#', $route, $m)) 
     ]);
 }
 
+/** Resolve an inbound invoice for the authenticated client by external reference. */
+function lookup_invoice(PDO $conn, array $client, string $reference): ?array
+{
+    $stmt = $conn->prepare(
+        "SELECT invoice_id, irn FROM api_inbound_invoices
+         WHERE api_client_id = :c AND external_reference = :r LIMIT 1"
+    );
+    $stmt->execute([':c' => $client['id'], ':r' => $reference]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+// ── PATCH /api/v1/invoices/{reference}/payment-status ────────────────────────
+// Update the invoice payment status. Call this when the buyer pays.
+if ($method === 'PATCH' && preg_match('#^v1/invoices/(.+)/payment-status$#', $route, $m)) {
+    $reference = urldecode($m[1]);
+    $body   = json_decode(file_get_contents('php://input'), true) ?: [];
+    $status = strtoupper(trim((string) ($body['payment_status'] ?? '')));
+    if (!in_array($status, ['PAID', 'PARTIAL', 'PENDING'], true)) {
+        respond(422, ['error' => 'validation_error', 'message' => 'payment_status must be PAID, PARTIAL or PENDING']);
+    }
+    $inv = lookup_invoice($conn, $client, $reference);
+    if (!$inv) {
+        respond(404, ['error' => 'not_found', 'reference' => $reference]);
+    }
+    $conn->prepare("UPDATE invoices SET payment_status = :p WHERE id = :id")
+         ->execute([':p' => $status, ':id' => $inv['invoice_id']]);
+    respond(200, [
+        'ok'                    => true,
+        'reference'             => $reference,
+        'irn'                   => $inv['irn'],
+        'invoice_id'            => (int) $inv['invoice_id'],
+        'payment_status'        => $status,
+        'transaction_reference' => $body['reference'] ?? null,
+    ]);
+}
+
+// ── POST /api/v1/invoices/{reference}/report ─────────────────────────────────
+// Report the invoice VAT basis (post-payment reporting).
+if ($method === 'POST' && preg_match('#^v1/invoices/(.+)/report$#', $route, $m)) {
+    $reference = urldecode($m[1]);
+    $body      = json_decode(file_get_contents('php://input'), true) ?: [];
+    $vatStatus = strtoupper(trim((string) ($body['vat_status'] ?? 'STANDARD_VAT')));
+    if (!in_array($vatStatus, ['STANDARD_VAT', 'ZERO_RATED', 'EXEMPT', 'EXEMPTED'], true)) {
+        $vatStatus = 'STANDARD_VAT';
+    }
+    $vatRate   = (float) ($body['vat_rate'] ?? 7.5);
+    $otherTax  = (string) ($body['other_taxes'] ?? '0');
+    $inv = lookup_invoice($conn, $client, $reference);
+    if (!$inv) {
+        respond(404, ['error' => 'not_found', 'reference' => $reference]);
+    }
+    $conn->prepare("UPDATE invoices SET tax_category_id = :tc, tax_rate = :tr WHERE id = :id")
+         ->execute([':tc' => $vatStatus, ':tr' => $vatRate, ':id' => $inv['invoice_id']]);
+    respond(200, [
+        'ok'          => true,
+        'reference'   => $reference,
+        'irn'         => $inv['irn'],
+        'invoice_id'  => (int) $inv['invoice_id'],
+        'vat_status'  => $vatStatus,
+        'vat_rate'    => (string) $vatRate,
+        'other_taxes' => $otherTax,
+    ]);
+}
+
 respond(404, ['error' => 'route_not_found', 'route' => $route, 'method' => $method]);
