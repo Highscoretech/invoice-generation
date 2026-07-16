@@ -25,8 +25,9 @@ class FirsClient
     private string $apiKey;
     private string $apiSecret;
     // FIRS issues two credential sets. The APP (taxpayer application) key is used
-    // for taxpayer-auth/validate/sign/confirm/download/update/exchange/report; the
-    // SI (system integrator) key is used for everything else (transmit, entity…).
+    // for the invoice endpoints - taxpayer-auth / validate / sign / transmit /
+    // confirm / download / update / exchange / report. The SI (system integrator)
+    // key is used for the remaining integrator calls (entity, resources).
     private string $appKey;
     private string $appSecret;
     private string $siKey;
@@ -40,8 +41,9 @@ class FirsClient
 
     /** Endpoints that must be called with the APP key (everything else → SI key). */
     private const APP_KEY_ENDPOINTS = [
-        '/taxpayer-auth', '/invoice/validate', '/invoice/sign', '/invoice/confirm',
-        '/invoice/download', '/invoice/update', '/invoice/exchange', '/invoice/report',
+        '/taxpayer-auth', '/invoice/validate', '/invoice/sign', '/invoice/transmit',
+        '/invoice/confirm', '/invoice/download', '/invoice/update', '/invoice/exchange',
+        '/invoice/report',
     ];
 
     public function __construct()
