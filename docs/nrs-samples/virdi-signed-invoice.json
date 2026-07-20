@@ -1,0 +1,118 @@
+{
+    "invoice_kind": "B2B",
+    "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
+    "irn": "VIRDIB2B001-4BB2353A-20260721",
+    "issue_date": "2026-07-21",
+    "due_date": "2026-08-20",
+    "issue_time": "09:30:00",
+    "invoice_type_code": "381",
+    "payment_status": "PENDING",
+    "note": "Thank you for your business.",
+    "tax_point_date": "2026-07-21",
+    "document_currency_code": "NGN",
+    "tax_currency_code": "NGN",
+    "accounting_cost": "2000",
+    "buyer_reference": "PO-2026-0456",
+    "invoice_delivery_period": {
+        "start_date": "2026-07-21",
+        "end_date": "2026-07-23"
+    },
+    "order_reference": "ORD-2026-0456",
+    "accounting_supplier_party": {
+        "party_name": "Virdi Nigeria Limited",
+        "tin": "22047671-0001",
+        "email": "info@virdi.com.ng",
+        "telephone": "+2348012345678",
+        "business_description": "General trade and services",
+        "postal_address": {
+            "street_name": "12 Marina Road",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "accounting_customer_party": {
+        "party_name": "Acme Trading Limited",
+        "tin": "10214563-0001",
+        "email": "accounts@acmetrading.ng",
+        "telephone": "+2348098765432",
+        "business_description": "Wholesale distribution",
+        "postal_address": {
+            "street_name": "5 Broad Street",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "actual_delivery_date": "2026-07-21",
+    "payment_means": [
+        {
+            "payment_means_code": "10",
+            "payment_due_date": "2026-08-20"
+        }
+    ],
+    "payment_terms_note": "Net 30 days.",
+    "tax_total": [
+        {
+            "tax_amount": 6750,
+            "tax_subtotal": [
+                {
+                    "taxable_amount": 90000,
+                    "tax_amount": 6750,
+                    "tax_category": {
+                        "id": "STANDARD_VAT",
+                        "percent": 7.5
+                    }
+                }
+            ]
+        }
+    ],
+    "legal_monetary_total": {
+        "line_extension_amount": 90000,
+        "tax_exclusive_amount": 90000,
+        "tax_inclusive_amount": 96750,
+        "payable_amount": 96750
+    },
+    "invoice_line": [
+        {
+            "hsn_code": "8471.30",
+            "product_category": "Electronics",
+            "discount_rate": 0,
+            "discount_amount": 0,
+            "fee_rate": 0,
+            "fee_amount": 0,
+            "invoiced_quantity": 10,
+            "line_extension_amount": 50000,
+            "item": {
+                "name": "Laptop computer",
+                "description": "Business laptop, 14-inch",
+                "sellers_item_identification": "LAP-14"
+            },
+            "price": {
+                "price_amount": 5000,
+                "base_quantity": 1,
+                "price_unit": "NGN per 1"
+            }
+        },
+        {
+            "hsn_code": "8517.12",
+            "product_category": "Electronics",
+            "discount_rate": 0,
+            "discount_amount": 0,
+            "fee_rate": 0,
+            "fee_amount": 0,
+            "invoiced_quantity": 5,
+            "line_extension_amount": 40000,
+            "item": {
+                "name": "Smartphone",
+                "description": "Android smartphone",
+                "sellers_item_identification": "PHN-01"
+            },
+            "price": {
+                "price_amount": 8000,
+                "base_quantity": 1,
+                "price_unit": "NGN per 1"
+            }
+        }
+    ]
+}

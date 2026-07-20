@@ -116,6 +116,7 @@ class InvoicePayload
         $total        = $taxInclusive;
 
         $payload = [
+            'invoice_kind'           => self::nz($invoice['invoice_kind'] ?? '', 'B2B'),
             'business_id'            => $businessId,
             'irn'                    => $irn,
             'issue_date'             => date('Y-m-d', strtotime($invoice['date'] ?? 'now')),
