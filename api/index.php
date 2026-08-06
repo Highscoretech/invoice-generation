@@ -476,13 +476,16 @@ function lookup_invoice(PDO $conn, array $client, string $reference): ?array
 }
 
 // ── PATCH /api/v1/invoices/{reference}/payment-status ────────────────────────
-// Update the invoice payment status. Call this when the buyer pays.
+// Update the invoice payment status. Call this when the buyer pays. Besides
+// storing it locally, we report the payment to NRS by calling their updateInvoice
+// API with the IRN (payment_status -> paid | partial | rejected).
 if ($method === 'PATCH' && preg_match('#^v1/invoices/(.+)/payment-status$#', $route, $m)) {
+    require_once __DIR__ . '/../includes/FirsService.php';
     $reference = urldecode($m[1]);
     $body   = json_decode(file_get_contents('php://input'), true) ?: [];
     $status = strtoupper(trim((string) ($body['payment_status'] ?? '')));
-    if (!in_array($status, ['PAID', 'PARTIAL', 'PENDING'], true)) {
-        respond(422, ['error' => 'validation_error', 'message' => 'payment_status must be PAID, PARTIAL or PENDING']);
+    if (!in_array($status, ['PAID', 'PARTIAL', 'REJECTED', 'PENDING'], true)) {
+        respond(422, ['error' => 'validation_error', 'message' => 'payment_status must be PAID, PARTIAL, REJECTED or PENDING']);
     }
     $inv = lookup_invoice($conn, $client, $reference);
     if (!$inv) {
@@ -490,6 +493,25 @@ if ($method === 'PATCH' && preg_match('#^v1/invoices/(.+)/payment-status$#', $ro
     }
     $conn->prepare("UPDATE invoices SET payment_status = :p WHERE id = :id")
          ->execute([':p' => $status, ':id' => $inv['invoice_id']]);
+
+    // Report the payment to NRS via their updateInvoice API (needs a signed IRN).
+    $firsUpdate  = null;
+    $nrsStatus   = FirsClient::nrsPaymentStatus($status);
+    if ($nrsStatus !== null && !empty($inv['irn'])) {
+        $res = (new FirsService($conn))->client()->updateInvoice($inv['irn'], ['payment_status' => $nrsStatus]);
+        $firsUpdate = [
+            'called'         => true,
+            'ok'             => $res['ok'],
+            'http'           => $res['http'],
+            'payment_status' => $nrsStatus,
+            'error'          => $res['error'],
+        ];
+    } elseif ($nrsStatus === null) {
+        $firsUpdate = ['called' => false, 'reason' => 'PENDING is not reported to NRS (no equivalent status)'];
+    } else {
+        $firsUpdate = ['called' => false, 'reason' => 'invoice has no signed IRN yet'];
+    }
+
     respond(200, [
         'ok'                    => true,
         'reference'             => $reference,
@@ -497,6 +519,7 @@ if ($method === 'PATCH' && preg_match('#^v1/invoices/(.+)/payment-status$#', $ro
         'invoice_id'            => (int) $inv['invoice_id'],
         'payment_status'        => $status,
         'transaction_reference' => $body['reference'] ?? null,
+        'firs_update'           => $firsUpdate,
     ]);
 }
 

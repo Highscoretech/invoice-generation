@@ -317,12 +317,14 @@ ob_start(); ?>
   <div class="ep">
     <div class="ep-h"><span class="m patch">PATCH</span><span class="path">/api/v1/invoices/:reference/payment-status</span></div>
     <div class="ep-b">
-      <p class="desc">Update the invoice payment status. Call this when the buyer pays.</p>
+      <p class="desc">Update the invoice payment status. Call this when the buyer pays. Besides storing the
+        status locally, we report it to NRS by calling their <b>updateInvoice</b> API with the invoice's IRN
+        (payment_status &rarr; PAID / PARTIAL / REJECTED). PENDING is stored locally only (NRS has no equivalent).</p>
       <div class="lbl">Request Body Fields (<span class="rq">*</span> = required)</div>
       <table>
         <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td class="p">payment_status <span class="rq">*</span></td><td class="t">string</td><td>PAID | PARTIAL | PENDING</td></tr>
+          <tr><td class="p">payment_status <span class="rq">*</span></td><td class="t">string</td><td>PAID | PARTIAL | REJECTED | PENDING. PAID/PARTIAL/REJECTED are reported to NRS.</td></tr>
           <tr><td class="p">reference</td><td class="t">string</td><td>Payment transaction reference - optional.</td></tr>
         </tbody>
       </table>
@@ -343,7 +345,14 @@ ob_start(); ?>
   "reference": "ACME-2001",
   "irn": "ACME2001-4BB2353A-20260706",
   "payment_status": "PAID",
-  "transaction_reference": "TRX-9988"
+  "transaction_reference": "TRX-9988",
+  "firs_update": {
+    "called": true,
+    "ok": true,
+    "http": 200,
+    "payment_status": "PAID",
+    "error": null
+  }
 }'); ?></pre>
     </div>
   </div>

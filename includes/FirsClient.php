@@ -128,6 +128,27 @@ class FirsClient
         return $this->request('GET', '/api/v1/invoice/confirm/' . rawurlencode($irn));
     }
 
+    /**
+     * PATCH /api/v1/invoice/update/{IRN} — update an already-signed invoice.
+     *
+     * Used to report payment against an invoice: NRS accepts a payment_status of
+     * PAID, PARTIAL or REJECTED (upper-case — the validation message prints them
+     * lower-case but only the upper-case forms are accepted). Returns the
+     * normalised response array; a 2xx means NRS accepted the update.
+     */
+    public function updateInvoice(string $irn, array $fields): array
+    {
+        return $this->request('PATCH', '/api/v1/invoice/update/' . rawurlencode($irn), $fields);
+    }
+
+    /** Map our payment_status to the value the NRS update endpoint expects, or null if not reportable. */
+    public static function nrsPaymentStatus(string $status): ?string
+    {
+        $status = strtoupper(trim($status));
+        // NRS reportable states only; PENDING is the default and has no NRS update value.
+        return in_array($status, ['PAID', 'PARTIAL', 'REJECTED'], true) ? $status : null;
+    }
+
     /** GET /api/v1/invoice/resources/{name} — reference data (tax categories, etc.). */
     public function getResource(string $name): array
     {
