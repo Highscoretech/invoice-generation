@@ -85,14 +85,17 @@ ob_start(); ?>
   </div>
 
   <div class="card" style="margin-bottom:8px;">
-    <div class="lbl">FIRS Invoice Type Codes</div>
+    <div class="lbl">FIRS/NRS Invoice Type Codes</div>
     <div class="codes">
       <div><b>380</b>Credit Note</div>
       <div><b>381</b>Commercial Invoice</div>
       <div><b>384</b>Debit Note</div>
       <div><b>385</b>Self Billed Invoice</div>
-      <div><b>388</b>Factored Invoice</div>
-      <div><b>389</b>Statement of Account</div>
+      <div><b>386</b>Factored Invoice</div>
+      <div><b>388</b>Statement of Account</div>
+      <div><b>389</b>Purchase Order</div>
+      <div><b>390</b>Proforma Invoice</div>
+      <div><b>396</b>Invoice Request</div>
     </div>
   </div>
 
@@ -141,7 +144,7 @@ ob_start(); ?>
           ['invoice_line[].item.description','string',1,'Item description.'],
           ['invoice_line[].price.price_amount','number',1,'Unit price in Naira.'],
           ['invoice_line[].price.base_quantity','number',1,'Base quantity (usually 1).'],
-          ['invoice_line[].price.price_unit','string',1,'Price unit label (e.g. NGN per 1).'],
+          ['invoice_line[].price.price_unit','string',1,'Unit-of-measure code (UN/ECE Rec 20, max 3 chars) - e.g. C62 (one/unit), EA (each), KGM, LTR, MTR.'],
           ['tax_total[].tax_amount','number',1,'Total tax amount.'],
           ['tax_total[].tax_subtotal[].taxable_amount','number',1,'Taxable base amount.'],
           ['tax_total[].tax_subtotal[].tax_amount','number',1,'Tax on this subtotal.'],
@@ -161,18 +164,20 @@ ob_start(); ?>
           ['payment_means[]','array',0,'{ payment_means_code, payment_due_date } - optional (10=cash, 30=credit transfer, 48=card).'],
           ['payment_terms_note','string',0,'Human-readable payment terms - optional.'],
           ['billing_reference[]','array',0,'Preceding invoice refs { irn, issue_date } - optional (credit/debit notes).'],
-          ['allowance_charge[]','array',0,'Document-level charge/allowance { charge_indicator, amount } - optional.'],
+          ['dispatch_document_reference','object',0,'Dispatch/despatch advice ref { irn, issue_date } - optional.'],
+          ['receipt_document_reference','object',0,'Receipt advice ref { irn, issue_date } - optional.'],
+          ['originator_document_reference','object',0,'Originator document ref { irn, issue_date } - optional.'],
+          ['contract_document_reference','object',0,'Contract ref { irn, issue_date } - optional.'],
+          ['additional_document_reference[]','array',0,'Any additional supporting docs { irn, issue_date } - optional.'],
+          ['payee_party','object',0,'Party receiving payment (same shape as accounting_customer_party) - optional.'],
+          ['tax_representative_party','object',0,'Supplier tax representative (same shape as accounting_customer_party) - optional.'],
+          ['allowance_charge[]','array',0,'Document-level charge/allowance { charge_indicator (true=charge,false=allowance), amount } - optional.'],
           ['invoice_line[].item.sellers_item_identification','string',0,'Seller item id/SKU - optional.'],
           ['invoice_line[].discount_rate','number',0,'Line discount percentage - optional, default 0.'],
           ['invoice_line[].discount_amount','number',0,'Line discount amount in Naira - optional, default 0.'],
           ['invoice_line[].fee_rate','number',0,'Line fee/surcharge percentage - optional, default 0.'],
           ['invoice_line[].fee_amount','number',0,'Line fee/surcharge amount in Naira - optional, default 0.'],
-          ['legal_monetary_total.allowance_total_amount','number',0,'Total discounts - optional, default 0.'],
-          ['legal_monetary_total.charge_total_amount','number',0,'Total charges - optional, default 0.'],
           ['reference','string',0,'Your idempotency key - optional (else derived from the payload).'],
-          ['due_date','string',0,'Payment due date (YYYY-MM-DD) - optional.'],
-          ['issue_time','string',0,'Issue time (HH:MM:SS) - optional.'],
-          ['payment_status','string',0,'PENDING | PAID | PARTIAL - optional, defaults to PENDING.'],
         ];
         foreach ($fields as [$p,$t,$req,$d]) {
           echo '<tr><td class="p">'.htmlspecialchars($p).($req?' <span class="rq">*</span>':'').'</td>'
@@ -189,25 +194,35 @@ ob_start(); ?>
   -H "Content-Type: application/json" \\
   -d \'{…}\''); ?></pre>
 
-      <div class="lbl">Request Body <span style="color:var(--accent);font-weight:600;">(Virdi's own invoice - validated 200 &amp; signed 201 on the NRS sandbox)</span></div>
+      <div class="lbl">Request Body <span style="color:var(--accent);font-weight:600;">(Virdi's own invoice, every optional field populated - validated 200 &amp; signed 201 on the NRS sandbox)</span></div>
 <pre><?php echo hljson('{
   "invoice_kind": "B2B",
-  "reference": "VIRDI-B2B-001",
+  "reference": "VIRDI-FULL-001",
   "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
-  "irn": "VIRDIB2B001-4BB2353A-20260721",
-  "issue_date": "2026-07-21",
-  "due_date": "2026-08-20",
+  "irn": "VIRDIFULL27-4BB2353A-20260810",
+  "issue_date": "2026-08-10",
+  "due_date": "2026-09-09",
   "issue_time": "09:30:00",
   "invoice_type_code": "381",
   "payment_status": "PENDING",
   "note": "Thank you for your business.",
-  "tax_point_date": "2026-07-21",
+  "tax_point_date": "2026-08-10",
   "document_currency_code": "NGN",
   "tax_currency_code": "NGN",
   "accounting_cost": "2000",
   "buyer_reference": "PO-2026-0456",
   "order_reference": "ORD-2026-0456",
-  "invoice_delivery_period": { "start_date": "2026-07-21", "end_date": "2026-07-23" },
+  "invoice_delivery_period": { "start_date": "2026-08-10", "end_date": "2026-08-12" },
+  "billing_reference": [
+    { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" }
+  ],
+  "dispatch_document_reference":   { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" },
+  "receipt_document_reference":    { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" },
+  "originator_document_reference": { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" },
+  "contract_document_reference":   { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" },
+  "additional_document_reference": [
+    { "irn": "VIRDIB2B001-4BB2353A-20260721", "issue_date": "2026-07-21" }
+  ],
   "accounting_supplier_party": {
     "party_name": "Virdi Nigeria Limited",
     "tin": "22047671-0001",
@@ -224,9 +239,32 @@ ob_start(); ?>
     "business_description": "Wholesale distribution",
     "postal_address": { "street_name": "5 Broad Street", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
   },
-  "actual_delivery_date": "2026-07-21",
-  "payment_means": [ { "payment_means_code": "10", "payment_due_date": "2026-08-20" } ],
+  "payee_party": {
+    "party_name": "Virdi Collections Ltd",
+    "tin": "22047671-0001",
+    "email": "payee@virdi.com.ng",
+    "telephone": "+2348011112222",
+    "business_description": "Receives payment on behalf of supplier",
+    "postal_address": { "street_name": "12 Marina Road", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+  },
+  "tax_representative_party": {
+    "party_name": "Virdi Tax Rep Ltd",
+    "tin": "22047671-0001",
+    "email": "taxrep@virdi.com.ng",
+    "telephone": "+2348033334444",
+    "business_description": "Tax representative for the supplier",
+    "postal_address": { "street_name": "12 Marina Road", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+  },
+  "actual_delivery_date": "2026-08-10",
+  "payment_means": [
+    { "payment_means_code": "10", "payment_due_date": "2026-09-09" },
+    { "payment_means_code": "43", "payment_due_date": "2026-09-09" }
+  ],
   "payment_terms_note": "Net 30 days.",
+  "allowance_charge": [
+    { "charge_indicator": true,  "amount": 800.60 },
+    { "charge_indicator": false, "amount": 10 }
+  ],
   "tax_total": [
     {
       "tax_amount": 6750,
@@ -249,7 +287,7 @@ ob_start(); ?>
       "invoiced_quantity": 10,
       "line_extension_amount": 50000,
       "item": { "name": "Laptop computer", "description": "Business laptop, 14-inch", "sellers_item_identification": "LAP-14" },
-      "price": { "price_amount": 5000, "base_quantity": 1, "price_unit": "NGN per 1" }
+      "price": { "price_amount": 5000, "base_quantity": 1, "price_unit": "C62" }
     },
     {
       "hsn_code": "8517.12",
@@ -258,21 +296,21 @@ ob_start(); ?>
       "invoiced_quantity": 5,
       "line_extension_amount": 40000,
       "item": { "name": "Smartphone", "description": "Android smartphone", "sellers_item_identification": "PHN-01" },
-      "price": { "price_amount": 8000, "base_quantity": 1, "price_unit": "NGN per 1" }
+      "price": { "price_amount": 8000, "base_quantity": 1, "price_unit": "C62" }
     }
   ]
 }'); ?></pre>
 
       <div class="lbl">Response</div>
 <pre><?php echo hljson('{
-  "reference": "VIRDI-B2B-001",
-  "invoice_id": 43,
-  "irn": "VIRDIB2B001-4BB2353A-20260721",
+  "reference": "VIRDI-FULL-001",
+  "invoice_id": 44,
+  "irn": "VIRDIFULL27-4BB2353A-20260810",
   "firs_status": "signed",
   "qr_present": true,
-  "status_url": "/api/v1/invoices/VIRDI-B2B-001/status"
+  "status_url": "/api/v1/invoices/VIRDI-FULL-001/status"
 }'); ?></pre>
-      <p style="color:var(--faint);font-size:.85rem;">Returns <span class="mono">201</span> when transmitted,
+      <p style="color:var(--faint);font-size:.85rem;">Returns <span class="mono">201</span> once validated &amp; signed with FIRS,
         <span class="mono">202</span> when accepted &amp; queued for retry. Errors: <span class="mono">401</span>
         bad credentials, <span class="mono">422</span> validation.</p>
     </div>
@@ -284,14 +322,14 @@ ob_start(); ?>
       <p class="desc">Check the live FIRS status for a previously submitted invoice: pipeline status, retry
         attempts, transmission time and any last error.</p>
       <div class="lbl">Example Request</div>
-<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/invoices/VIRDI-B2B-001/status" \\
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/invoices/VIRDI-FULL-001/status" \\
   -H "x-client-key: ak_••••••••••••••••" \\
   -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
       <div class="lbl">Response</div>
 <pre><?php echo hljson('{
-  "reference": "VIRDI-B2B-001",
-  "invoice_id": 43,
-  "irn": "VIRDIB2B001-4BB2353A-20260721",
+  "reference": "VIRDI-FULL-001",
+  "invoice_id": 44,
+  "irn": "VIRDIFULL27-4BB2353A-20260810",
   "firs_status": "signed",
   "attempts": 1,
   "transmitted_at": null,

@@ -120,26 +120,37 @@ class FirsService
             $stmt->execute([':q' => $qr, ':id' => $invoiceId]);
         }
 
-        // ── 4. Transmit ──────────────────────────────────────────────────────
-        $res = $this->client->transmitInvoice($irn, $payload);
-        $this->log($invoiceId, $irn, 'transmit', $attempt, $res, $payload);
-        if ($res['ok']) {
-            $this->setStatus($invoiceId, 'transmitted', [
-                'transmitted_at' => date('Y-m-d H:i:s'),
-                'next_retry_at'  => null,
-                'last_error'     => null,
-                'status'         => 'verified',
-                'api_status'     => 'success',
-                'api_response'   => $res['raw'],
-            ]);
-            $this->webhooks->notify($invoiceId, 'invoice.transmitted');
-            // Pull the authoritative delivery state and notify the customer of
-            // any further change (delivered / rejected).
-            $this->confirmStatus($invoiceId);
-            return ['ok' => true, 'stage' => 'transmit', 'status' => 'transmitted', 'irn' => $irn, 'message' => 'Invoice transmitted to FIRS', 'qr' => $qr];
-        }
+        // ── 4. Transmit — DISABLED per client instruction ────────────────────
+        // Virdi does not want the transmit API called: the FIRS/NRS sandbox has
+        // not authorised transmit for this entity (it returns 403 "user does not
+        // have access to this resource"). An invoice is complete once it is
+        // validated, signed and QR-stamped, so we stop here. To re-enable
+        // transmission later, simply un-comment the block below.
+        //
+        // $res = $this->client->transmitInvoice($irn, $payload);
+        // $this->log($invoiceId, $irn, 'transmit', $attempt, $res, $payload);
+        // if ($res['ok']) {
+        //     $this->setStatus($invoiceId, 'transmitted', [
+        //         'transmitted_at' => date('Y-m-d H:i:s'),
+        //         'next_retry_at'  => null,
+        //         'last_error'     => null,
+        //         'status'         => 'verified',
+        //         'api_status'     => 'success',
+        //         'api_response'   => $res['raw'],
+        //     ]);
+        //     $this->webhooks->notify($invoiceId, 'invoice.transmitted');
+        //     // Pull the authoritative delivery state and notify the customer of
+        //     // any further change (delivered / rejected).
+        //     $this->confirmStatus($invoiceId);
+        //     return ['ok' => true, 'stage' => 'transmit', 'status' => 'transmitted', 'irn' => $irn, 'message' => 'Invoice transmitted to FIRS', 'qr' => $qr];
+        // }
+        //
+        // return $this->finishFailure($invoiceId, $irn, 'transmit', $res, $attempt);
 
-        return $this->finishFailure($invoiceId, $irn, 'transmit', $res, $attempt);
+        // Signed & QR-stamped is now the final successful state.
+        $this->setStatus($invoiceId, 'signed', ['next_retry_at' => null, 'last_error' => null]);
+        $this->webhooks->notify($invoiceId, 'invoice.signed');
+        return ['ok' => true, 'stage' => 'sign', 'status' => 'signed', 'irn' => $irn, 'message' => 'Invoice validated & signed with FIRS (transmit disabled)', 'qr' => $qr];
     }
 
     /**

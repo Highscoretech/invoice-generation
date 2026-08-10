@@ -99,7 +99,9 @@ class InvoicePayload
                 'price' => [
                     'price_amount'  => round((float) ($it['rate'] ?? 0), 2),
                     'base_quantity' => (float) ($it['quantity'] ?? 1),
-                    'price_unit'    => $currency . ' per 1',
+                    // Unit of measure code (UN/ECE Rec 20, max 3 chars). NRS rejects
+                    // free-text like "NGN per 1"; C62 = "one/unit" is the default.
+                    'price_unit'    => self::nz($it['unit_code'] ?? '', 'C62'),
                 ],
             ];
         }

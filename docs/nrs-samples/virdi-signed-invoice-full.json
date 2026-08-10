@@ -1,23 +1,55 @@
 {
     "invoice_kind": "B2B",
     "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
-    "irn": "VIRDIB2B001-4BB2353A-20260721",
-    "issue_date": "2026-07-21",
-    "due_date": "2026-08-20",
+    "irn": "VIRDIFULL27-4BB2353A-20260810",
+    "issue_date": "2026-08-10",
+    "due_date": "2026-09-09",
     "issue_time": "09:30:00",
     "invoice_type_code": "381",
     "payment_status": "PENDING",
     "note": "Thank you for your business.",
-    "tax_point_date": "2026-07-21",
+    "tax_point_date": "2026-08-10",
     "document_currency_code": "NGN",
     "tax_currency_code": "NGN",
     "accounting_cost": "2000",
     "buyer_reference": "PO-2026-0456",
     "invoice_delivery_period": {
-        "start_date": "2026-07-21",
-        "end_date": "2026-07-23"
+        "start_date": "2026-08-10",
+        "end_date": "2026-08-12"
     },
     "order_reference": "ORD-2026-0456",
+    "billing_reference": [
+        {
+            "irn": "VIRDIB2B001-4BB2353A-20260721",
+            "issue_date": "2026-07-21"
+        },
+        {
+            "irn": "VIRDIB2B001-4BB2353A-20260721",
+            "issue_date": "2026-07-21"
+        }
+    ],
+    "dispatch_document_reference": {
+        "irn": "VIRDIB2B001-4BB2353A-20260721",
+        "issue_date": "2026-07-21"
+    },
+    "receipt_document_reference": {
+        "irn": "VIRDIB2B001-4BB2353A-20260721",
+        "issue_date": "2026-07-21"
+    },
+    "originator_document_reference": {
+        "irn": "VIRDIB2B001-4BB2353A-20260721",
+        "issue_date": "2026-07-21"
+    },
+    "contract_document_reference": {
+        "irn": "VIRDIB2B001-4BB2353A-20260721",
+        "issue_date": "2026-07-21"
+    },
+    "additional_document_reference": [
+        {
+            "irn": "VIRDIB2B001-4BB2353A-20260721",
+            "issue_date": "2026-07-21"
+        }
+    ],
     "accounting_supplier_party": {
         "party_name": "Virdi Nigeria Limited",
         "tin": "22047671-0001",
@@ -38,20 +70,60 @@
         "telephone": "+2348098765432",
         "business_description": "Wholesale distribution",
         "postal_address": {
-            "street_name": "5 Broad Street",
+            "street_name": "12 Marina Road",
             "city_name": "Lagos",
             "postal_zone": "100001",
             "country": "NG"
         }
     },
-    "actual_delivery_date": "2026-07-21",
+    "payee_party": {
+        "party_name": "Virdi Collections Ltd",
+        "tin": "22047671-0001",
+        "email": "payee@virdi.com.ng",
+        "telephone": "+2348011112222",
+        "business_description": "Receives payment on behalf of supplier",
+        "postal_address": {
+            "street_name": "12 Marina Road",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "tax_representative_party": {
+        "party_name": "Virdi Tax Rep Ltd",
+        "tin": "22047671-0001",
+        "email": "taxrep@virdi.com.ng",
+        "telephone": "+2348033334444",
+        "business_description": "Tax representative for the supplier",
+        "postal_address": {
+            "street_name": "12 Marina Road",
+            "city_name": "Lagos",
+            "postal_zone": "100001",
+            "country": "NG"
+        }
+    },
+    "actual_delivery_date": "2026-08-10",
     "payment_means": [
         {
             "payment_means_code": "10",
-            "payment_due_date": "2026-08-20"
+            "payment_due_date": "2026-09-09"
+        },
+        {
+            "payment_means_code": "43",
+            "payment_due_date": "2026-09-09"
         }
     ],
     "payment_terms_note": "Net 30 days.",
+    "allowance_charge": [
+        {
+            "charge_indicator": true,
+            "amount": 800.6
+        },
+        {
+            "charge_indicator": false,
+            "amount": 10
+        }
+    ],
     "tax_total": [
         {
             "tax_amount": 6750,
