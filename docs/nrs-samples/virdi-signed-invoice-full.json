@@ -1,7 +1,7 @@
 {
     "invoice_kind": "B2B",
     "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
-    "irn": "VIRDIFULL27-4BB2353A-20260810",
+    "irn": "VIRDIXML01-4BB2353A-20260810",
     "issue_date": "2026-08-10",
     "due_date": "2026-09-09",
     "issue_time": "09:30:00",
@@ -19,10 +19,6 @@
     },
     "order_reference": "ORD-2026-0456",
     "billing_reference": [
-        {
-            "irn": "VIRDIB2B001-4BB2353A-20260721",
-            "issue_date": "2026-07-21"
-        },
         {
             "irn": "VIRDIB2B001-4BB2353A-20260721",
             "issue_date": "2026-07-21"
@@ -70,9 +66,9 @@
         "telephone": "+2348098765432",
         "business_description": "Wholesale distribution",
         "postal_address": {
-            "street_name": "12 Marina Road",
+            "street_name": "5 Broad Street",
             "city_name": "Lagos",
-            "postal_zone": "100001",
+            "postal_zone": "101001",
             "country": "NG"
         }
     },
@@ -83,9 +79,9 @@
         "telephone": "+2348011112222",
         "business_description": "Receives payment on behalf of supplier",
         "postal_address": {
-            "street_name": "12 Marina Road",
-            "city_name": "Lagos",
-            "postal_zone": "100001",
+            "street_name": "15 Awolowo Road",
+            "city_name": "Ikeja",
+            "postal_zone": "100271",
             "country": "NG"
         }
     },
@@ -96,9 +92,9 @@
         "telephone": "+2348033334444",
         "business_description": "Tax representative for the supplier",
         "postal_address": {
-            "street_name": "12 Marina Road",
-            "city_name": "Lagos",
-            "postal_zone": "100001",
+            "street_name": "8 Adeola Odeku Street",
+            "city_name": "Victoria Island",
+            "postal_zone": "101241",
             "country": "NG"
         }
     },

@@ -105,9 +105,8 @@ ob_start(); ?>
     <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices</span></div>
     <div class="ep-b">
       <p class="desc">Create and submit a new FIRS/NRS-compliant invoice. The middleware builds the IRN,
-        validates and signs the payload with FIRS, generates the QR code, and transmits it to the NRS gateway.
-        Returns the IRN and status immediately; final FIRS delivery is confirmed asynchronously. Send the full
-        FIRS BIS 3.0 body below.</p>
+        validates and signs the payload with FIRS and generates the QR code. Returns the IRN, the signed
+        status and the QR immediately. Send the full FIRS BIS 3.0 body below.</p>
       <div class="lbl" style="margin-top:6px;">Request Body Fields (<span class="rq">*</span> = required)</div>
       <table>
         <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
@@ -199,7 +198,7 @@ ob_start(); ?>
   "invoice_kind": "B2B",
   "reference": "VIRDI-FULL-001",
   "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
-  "irn": "VIRDIFULL27-4BB2353A-20260810",
+  "irn": "VIRDIXML01-4BB2353A-20260810",
   "issue_date": "2026-08-10",
   "due_date": "2026-09-09",
   "issue_time": "09:30:00",
@@ -237,7 +236,7 @@ ob_start(); ?>
     "email": "accounts@acmetrading.ng",
     "telephone": "+2348098765432",
     "business_description": "Wholesale distribution",
-    "postal_address": { "street_name": "5 Broad Street", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+    "postal_address": { "street_name": "5 Broad Street", "city_name": "Lagos", "postal_zone": "101001", "country": "NG" }
   },
   "payee_party": {
     "party_name": "Virdi Collections Ltd",
@@ -245,7 +244,7 @@ ob_start(); ?>
     "email": "payee@virdi.com.ng",
     "telephone": "+2348011112222",
     "business_description": "Receives payment on behalf of supplier",
-    "postal_address": { "street_name": "12 Marina Road", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+    "postal_address": { "street_name": "15 Awolowo Road", "city_name": "Ikeja", "postal_zone": "100271", "country": "NG" }
   },
   "tax_representative_party": {
     "party_name": "Virdi Tax Rep Ltd",
@@ -253,7 +252,7 @@ ob_start(); ?>
     "email": "taxrep@virdi.com.ng",
     "telephone": "+2348033334444",
     "business_description": "Tax representative for the supplier",
-    "postal_address": { "street_name": "12 Marina Road", "city_name": "Lagos", "postal_zone": "100001", "country": "NG" }
+    "postal_address": { "street_name": "8 Adeola Odeku Street", "city_name": "Victoria Island", "postal_zone": "101241", "country": "NG" }
   },
   "actual_delivery_date": "2026-08-10",
   "payment_means": [
@@ -305,7 +304,7 @@ ob_start(); ?>
 <pre><?php echo hljson('{
   "reference": "VIRDI-FULL-001",
   "invoice_id": 44,
-  "irn": "VIRDIFULL27-4BB2353A-20260810",
+  "irn": "VIRDIXML01-4BB2353A-20260810",
   "firs_status": "signed",
   "qr_present": true,
   "status_url": "/api/v1/invoices/VIRDI-FULL-001/status"
@@ -329,7 +328,7 @@ ob_start(); ?>
 <pre><?php echo hljson('{
   "reference": "VIRDI-FULL-001",
   "invoice_id": 44,
-  "irn": "VIRDIFULL27-4BB2353A-20260810",
+  "irn": "VIRDIXML01-4BB2353A-20260810",
   "firs_status": "signed",
   "attempts": 1,
   "transmitted_at": null,

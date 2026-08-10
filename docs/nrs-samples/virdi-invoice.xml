@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:firs.gov.ng:einvoicing:ver1.0</cbc:CustomizationID>
+  <cbc:ProfileID>B2B</cbc:ProfileID>
+  <cbc:ID>VIRDIXML01-4BB2353A-20260810</cbc:ID>
+  <cbc:IssueDate>2026-08-10</cbc:IssueDate>
+  <cbc:IssueTime>09:30:00</cbc:IssueTime>
+  <cbc:DueDate>2026-09-09</cbc:DueDate>
+  <cbc:InvoiceTypeCode>381</cbc:InvoiceTypeCode>
+  <cbc:Note>Thank you for your business.</cbc:Note>
+  <cbc:TaxPointDate>2026-08-10</cbc:TaxPointDate>
+  <cbc:DocumentCurrencyCode>NGN</cbc:DocumentCurrencyCode>
+  <cbc:TaxCurrencyCode>NGN</cbc:TaxCurrencyCode>
+  <cbc:AccountingCost>2000</cbc:AccountingCost>
+  <cbc:BuyerReference>PO-2026-0456</cbc:BuyerReference>
+  <cac:InvoicePeriod>
+    <cbc:StartDate>2026-08-10</cbc:StartDate>
+    <cbc:EndDate>2026-08-12</cbc:EndDate>
+  </cac:InvoicePeriod>
+  <cac:OrderReference>
+    <cbc:ID>ORD-2026-0456</cbc:ID>
+  </cac:OrderReference>
+  <cac:BillingReference>
+    <cac:InvoiceDocumentReference>
+      <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+      <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+    </cac:InvoiceDocumentReference>
+  </cac:BillingReference>
+  <cac:DespatchDocumentReference>
+    <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+    <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+  </cac:DespatchDocumentReference>
+  <cac:ReceiptDocumentReference>
+    <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+    <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+  </cac:ReceiptDocumentReference>
+  <cac:OriginatorDocumentReference>
+    <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+    <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+  </cac:OriginatorDocumentReference>
+  <cac:ContractDocumentReference>
+    <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+    <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+  </cac:ContractDocumentReference>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>VIRDIB2B001-4BB2353A-20260721</cbc:ID>
+    <cbc:IssueDate>2026-07-21</cbc:IssueDate>
+  </cac:AdditionalDocumentReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>Virdi Nigeria Limited</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>12 Marina Road</cbc:StreetName>
+        <cbc:CityName>Lagos</cbc:CityName>
+        <cbc:PostalZone>100001</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>NG</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Virdi Nigeria Limited</cbc:RegistrationName>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Telephone>+2348012345678</cbc:Telephone>
+        <cbc:ElectronicMail>info@virdi.com.ng</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>Acme Trading Limited</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>5 Broad Street</cbc:StreetName>
+        <cbc:CityName>Lagos</cbc:CityName>
+        <cbc:PostalZone>101001</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>NG</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>10214563-0001</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Acme Trading Limited</cbc:RegistrationName>
+        <cbc:CompanyID>10214563-0001</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Telephone>+2348098765432</cbc:Telephone>
+        <cbc:ElectronicMail>accounts@acmetrading.ng</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:PayeeParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>Virdi Collections Ltd</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>15 Awolowo Road</cbc:StreetName>
+        <cbc:CityName>Ikeja</cbc:CityName>
+        <cbc:PostalZone>100271</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>NG</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Virdi Collections Ltd</cbc:RegistrationName>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Telephone>+2348011112222</cbc:Telephone>
+        <cbc:ElectronicMail>payee@virdi.com.ng</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:PayeeParty>
+  <cac:TaxRepresentativeParty>
+    <cac:Party>
+      <cac:PartyName>
+        <cbc:Name>Virdi Tax Rep Ltd</cbc:Name>
+      </cac:PartyName>
+      <cac:PostalAddress>
+        <cbc:StreetName>8 Adeola Odeku Street</cbc:StreetName>
+        <cbc:CityName>Victoria Island</cbc:CityName>
+        <cbc:PostalZone>101241</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>NG</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Virdi Tax Rep Ltd</cbc:RegistrationName>
+        <cbc:CompanyID>22047671-0001</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Telephone>+2348033334444</cbc:Telephone>
+        <cbc:ElectronicMail>taxrep@virdi.com.ng</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:TaxRepresentativeParty>
+  <cac:Delivery>
+    <cbc:ActualDeliveryDate>2026-08-10</cbc:ActualDeliveryDate>
+  </cac:Delivery>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>10</cbc:PaymentMeansCode>
+    <cbc:PaymentDueDate>2026-09-09</cbc:PaymentDueDate>
+  </cac:PaymentMeans>
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>43</cbc:PaymentMeansCode>
+    <cbc:PaymentDueDate>2026-09-09</cbc:PaymentDueDate>
+  </cac:PaymentMeans>
+  <cac:PaymentTerms>
+    <cbc:Note>Net 30 days.</cbc:Note>
+  </cac:PaymentTerms>
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>true</cbc:ChargeIndicator>
+    <cbc:Amount currencyID="NGN">800.60</cbc:Amount>
+  </cac:AllowanceCharge>
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
+    <cbc:Amount currencyID="NGN">10.00</cbc:Amount>
+  </cac:AllowanceCharge>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="NGN">6750.00</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="NGN">90000.00</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="NGN">6750.00</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>STANDARD_VAT</cbc:ID>
+        <cbc:Percent>7.5</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="NGN">90000.00</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="NGN">90000.00</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="NGN">96750.00</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="NGN">96750.00</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <cac:InvoiceLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="C62">10</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="NGN">50000.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Description>Business laptop, 14-inch</cbc:Description>
+      <cbc:Name>Laptop computer</cbc:Name>
+      <cac:SellersItemIdentification>
+        <cbc:ID>LAP-14</cbc:ID>
+      </cac:SellersItemIdentification>
+      <cac:CommodityClassification>
+        <cbc:ItemClassificationCode>8471.30</cbc:ItemClassificationCode>
+      </cac:CommodityClassification>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="NGN">5000.00</cbc:PriceAmount>
+      <cbc:BaseQuantity unitCode="C62">1</cbc:BaseQuantity>
+    </cac:Price>
+  </cac:InvoiceLine>
+  <cac:InvoiceLine>
+    <cbc:ID>2</cbc:ID>
+    <cbc:InvoicedQuantity unitCode="C62">5</cbc:InvoicedQuantity>
+    <cbc:LineExtensionAmount currencyID="NGN">40000.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Description>Android smartphone</cbc:Description>
+      <cbc:Name>Smartphone</cbc:Name>
+      <cac:SellersItemIdentification>
+        <cbc:ID>PHN-01</cbc:ID>
+      </cac:SellersItemIdentification>
+      <cac:CommodityClassification>
+        <cbc:ItemClassificationCode>8517.12</cbc:ItemClassificationCode>
+      </cac:CommodityClassification>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="NGN">8000.00</cbc:PriceAmount>
+      <cbc:BaseQuantity unitCode="C62">1</cbc:BaseQuantity>
+    </cac:Price>
+  </cac:InvoiceLine>
+</Invoice>
