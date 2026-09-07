@@ -316,6 +316,42 @@ ob_start(); ?>
   </div>
 
   <div class="ep">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices/:reference/transmit</span></div>
+    <div class="ep-b">
+      <p class="desc">Transmit a previously-signed invoice to the FIRS/NRS gateway. The invoice must already be
+        created and signed (see <span class="mono">POST /api/v1/invoices</span>); this pushes it on to the NRS
+        platform using its IRN so it is cleared and reflected on the FIRS portal. No request body is required
+        (an empty JSON body <span class="mono">{}</span> is accepted).</p>
+      <div class="lbl">Path Parameters</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">reference <span class="rq">*</span></td><td class="t">string</td><td>Your unique invoice reference (the one you submitted).</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X POST "'.$base.'/api/v1/invoices/VIRDI-FULL-001/transmit" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••" \\
+  -H "Content-Type: application/json" \\
+  -d \'{}\''); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "ok": true,
+  "reference": "VIRDI-FULL-001",
+  "invoice_id": 44,
+  "irn": "VIRDIXML01-4BB2353A-20260810",
+  "firs_status": "transmitted",
+  "transmitted": true,
+  "message": "Invoice transmitted to FIRS"
+}'); ?></pre>
+      <p style="color:var(--faint);font-size:.85rem;">Returns <span class="mono">200</span> on success,
+        <span class="mono">409</span> if the invoice is not signed yet, and <span class="mono">502</span> if FIRS
+        rejects the transmission (e.g. the entity is not yet authorised for the transmit resource).</p>
+    </div>
+  </div>
+
+  <div class="ep">
     <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/:reference/status</span></div>
     <div class="ep-b">
       <p class="desc">Check the live FIRS status for a previously submitted invoice: pipeline status, retry

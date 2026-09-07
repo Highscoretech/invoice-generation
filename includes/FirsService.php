@@ -154,6 +154,80 @@ class FirsService
     }
 
     /**
+     * Explicitly transmit an already-signed invoice to the FIRS/NRS gateway.
+     *
+     * This is the on-demand counterpart to the (disabled) auto-transmit step in
+     * submit(): the pipeline stops at "signed", and a caller invokes this when it
+     * wants the invoice pushed on to NRS so it is cleared and reflected on the
+     * FIRS portal. The invoice must already be signed.
+     *
+     * NOTE: transmit requires the FIRS entity to be authorised for the transmit
+     * resource. Until FIRS grants it, NRS returns 403 and this reports the failure
+     * faithfully (keeping the invoice in its signed state) rather than feign success.
+     *
+     * @return array { ok:bool, stage:'transmit', status:string, irn:string, message:string, http:int }
+     */
+    public function transmit(int $invoiceId): array
+    {
+        $invoice = $this->loadInvoice($invoiceId);
+        if (!$invoice) {
+            return ['ok' => false, 'stage' => 'transmit', 'status' => 'failed', 'irn' => '', 'message' => 'Invoice not found', 'http' => 0];
+        }
+        if (!$this->client->isConfigured()) {
+            return ['ok' => false, 'stage' => 'transmit', 'status' => 'failed', 'irn' => '', 'message' => 'FIRS business id / API key not configured yet', 'http' => 0];
+        }
+
+        $irn = (string) ($invoice['irn'] ?? '');
+        if ($irn === '' || empty($invoice['signed_at'])) {
+            return ['ok' => false, 'stage' => 'transmit', 'status' => (string) ($invoice['firs_status'] ?? 'not_sent'),
+                    'irn' => $irn, 'message' => 'Invoice must be validated and signed before it can be transmitted', 'http' => 0];
+        }
+        if (!empty($invoice['transmitted_at'])) {
+            return ['ok' => true, 'stage' => 'transmit', 'status' => 'transmitted', 'irn' => $irn,
+                    'message' => 'Invoice was already transmitted', 'http' => 200];
+        }
+
+        // Reconstruct the exact payload we signed (stored full payload, or from rows).
+        $businessId = $this->client->getBusinessId();
+        if (!empty($invoice['firs_payload']) && is_array($payload = json_decode($invoice['firs_payload'], true))) {
+            $payload['business_id'] = $businessId;
+            $payload['irn']         = $irn;
+        } else {
+            $payload = InvoicePayload::build(
+                $invoice,
+                $this->loadItems($invoiceId),
+                $this->loadCompany((int) $invoice['company_id']),
+                $this->loadCustomer((int) $invoice['customer_id']),
+                $irn,
+                $businessId
+            );
+        }
+
+        $attempt = ((int) $invoice['transmit_attempts']) + 1;
+        $res = $this->client->transmitInvoice($irn, $payload);
+        $this->log($invoiceId, $irn, 'transmit', $attempt, $res, $payload);
+
+        if ($res['ok']) {
+            $this->setStatus($invoiceId, 'transmitted', [
+                'transmitted_at' => date('Y-m-d H:i:s'),
+                'next_retry_at'  => null,
+                'last_error'     => null,
+                'status'         => 'verified',
+                'api_status'     => 'success',
+                'api_response'   => $res['raw'],
+            ]);
+            $this->webhooks->notify($invoiceId, 'invoice.transmitted');
+            $this->confirmStatus($invoiceId);
+            return ['ok' => true, 'stage' => 'transmit', 'status' => 'transmitted', 'irn' => $irn, 'message' => 'Invoice transmitted to FIRS', 'http' => (int) $res['http']];
+        }
+
+        // Keep the signed state (don't downgrade); record why transmit failed.
+        $error = substr((string) ($res['error'] ?? 'transmit failed'), 0, 500);
+        $this->setStatus($invoiceId, $this->currentFirsStatus($invoiceId), ['last_error' => $error]);
+        return ['ok' => false, 'stage' => 'transmit', 'status' => 'signed', 'irn' => $irn, 'message' => $error, 'http' => (int) $res['http']];
+    }
+
+    /**
      * Poll GET /invoice/confirm/{IRN} for the authoritative lifecycle state and
      * persist it. When the invoice flips to delivered (or rejected) the customer
      * is notified. Returns the confirm payload, or null if it couldn't be read.

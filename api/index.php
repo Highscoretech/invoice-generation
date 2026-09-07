@@ -551,4 +551,28 @@ if ($method === 'POST' && preg_match('#^v1/invoices/(.+)/report$#', $route, $m))
     ]);
 }
 
+// ── POST /api/v1/invoices/{reference}/transmit ───────────────────────────────
+// Transmit a previously-signed invoice to the FIRS/NRS gateway (on demand).
+if ($method === 'POST' && preg_match('#^v1/invoices/(.+)/transmit$#', $route, $m)) {
+    require_once __DIR__ . '/../includes/FirsService.php';
+    $reference = urldecode($m[1]);
+    $inv = lookup_invoice($conn, $client, $reference);
+    if (!$inv) {
+        respond(404, ['error' => 'not_found', 'reference' => $reference]);
+    }
+    $result = (new FirsService($conn))->transmit((int) $inv['invoice_id']);
+    // 200 success; 409 when the invoice isn't signed yet; 502 when FIRS rejects
+    // the transmission (e.g. the entity is not yet authorised for transmit).
+    $httpCode = $result['ok'] ? 200 : (empty($result['http']) ? 409 : 502);
+    respond($httpCode, [
+        'ok'          => $result['ok'],
+        'reference'   => $reference,
+        'invoice_id'  => (int) $inv['invoice_id'],
+        'irn'         => $result['irn'],
+        'firs_status' => $result['status'],
+        'transmitted' => $result['ok'],
+        'message'     => $result['message'],
+    ]);
+}
+
 respond(404, ['error' => 'route_not_found', 'route' => $route, 'method' => $method]);
