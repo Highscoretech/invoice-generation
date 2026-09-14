@@ -24,6 +24,50 @@ function hlbash(string $cmd): string {
     return $e;
 }
 
+/** Inline SVG showing how invoice data flows from the customer through the
+ *  Virdi middleware (validate -> sign -> QR -> transmit) to FIRS/NRS. */
+function flow_diagram(): string {
+    return <<<SVG
+<div class="flow"><svg viewBox="0 0 1000 235" role="img" aria-label="Flow of invoice data from customer to FIRS/NRS">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b93a1"/>
+    </marker>
+  </defs>
+  <rect x="212" y="92" width="352" height="96" rx="12" fill="none" stroke="#c7cdd6" stroke-dasharray="5 4"/>
+  <text x="228" y="110" font-size="11" font-weight="700" fill="#8b93a1" letter-spacing="1">VIRDI MIDDLEWARE</text>
+  <g font-family="-apple-system,Segoe UI,Roboto,sans-serif">
+    <rect x="12" y="112" width="118" height="54" rx="11" fill="#e8f0fe" stroke="#1a56db"/>
+    <text x="71" y="144" text-anchor="middle" font-size="13" font-weight="600" fill="#1a56db">Customer</text>
+    <rect x="230" y="120" width="92" height="40" rx="9" fill="#e6f6ec" stroke="#0d7a3f"/>
+    <text x="276" y="145" text-anchor="middle" font-size="12" font-weight="600" fill="#0d7a3f">Validate</text>
+    <rect x="338" y="120" width="78" height="40" rx="9" fill="#e6f6ec" stroke="#0d7a3f"/>
+    <text x="377" y="145" text-anchor="middle" font-size="12" font-weight="600" fill="#0d7a3f">Sign</text>
+    <rect x="432" y="120" width="112" height="40" rx="9" fill="#e6f6ec" stroke="#0d7a3f"/>
+    <text x="488" y="145" text-anchor="middle" font-size="12" font-weight="600" fill="#0d7a3f">Generate QR</text>
+    <rect x="632" y="112" width="118" height="54" rx="11" fill="#ede9fe" stroke="#6d28d9"/>
+    <text x="691" y="144" text-anchor="middle" font-size="13" font-weight="600" fill="#6d28d9">NRS Gateway</text>
+    <rect x="812" y="70" width="176" height="46" rx="11" fill="#e6f6ec" stroke="#0d7a3f"/>
+    <text x="900" y="98" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0d7a3f">Approved / Cleared</text>
+    <rect x="812" y="162" width="176" height="46" rx="11" fill="#fdecec" stroke="#e5484d"/>
+    <text x="900" y="190" text-anchor="middle" font-size="12.5" font-weight="600" fill="#e5484d">Rejected</text>
+  </g>
+  <g stroke="#8b93a1" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <path d="M130,139 L226,139"/>
+    <path d="M322,140 L334,140"/>
+    <path d="M416,140 L428,140"/>
+    <path d="M544,140 L628,139"/>
+    <path d="M750,130 L810,96"/>
+    <path d="M750,150 L810,182"/>
+  </g>
+  <g font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="11" fill="#69707e" text-anchor="middle">
+    <text x="178" y="130">POST /invoices</text>
+    <text x="587" y="130">POST /transmit</text>
+  </g>
+</svg></div>
+SVG;
+}
+
 // Scoped styles (everything under .apiref so the operator layout is untouched).
 $CSS = <<<CSS
 .apiref{--card:#ffffff;--ink:#1b2230;--muted:#69707e;--faint:#9aa2b1;--line:#e6e9ef;
@@ -61,12 +105,100 @@ $CSS = <<<CSS
 .apiref pre .k{color:#79c0ff;}.apiref pre .s{color:#a5d6ff;}.apiref pre .n{color:#7ee787;}.apiref pre .b{color:#ff7b72;}
 .apiref pre .kw{color:#ff7b72;}.apiref pre .mkw{color:#d2a8ff;font-weight:700;}
 @media(max-width:720px){.apiref .grid2,.apiref .codes{grid-template-columns:1fr;}}
+
+/* ── Qorpy-style two-column layout: sticky collapsible sidebar + content ── */
+.apiref .wrap{max-width:1200px;display:flex;gap:36px;align-items:flex-start;}
+.apiref .doccontent{flex:1 1 auto;min-width:0;}
+.apiref .docnav{position:sticky;top:70px;flex:0 0 244px;max-height:calc(100vh - 90px);overflow-y:auto;padding:2px 6px 20px 0;}
+.apiref .docnav::-webkit-scrollbar{width:8px;}.apiref .docnav::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+.apiref .navgroup{margin-bottom:2px;}
+.apiref .navgroup>button{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;cursor:pointer;padding:9px 6px;font:inherit;font-weight:700;color:var(--ink);text-transform:uppercase;font-size:.68rem;letter-spacing:.07em;}
+.apiref .navgroup>button .chev{transition:transform .18s ease;color:var(--faint);font-size:.7rem;}
+.apiref .navgroup.collapsed>button .chev{transform:rotate(-90deg);}
+.apiref .navlist{display:flex;flex-direction:column;gap:1px;margin:1px 0 10px;overflow:hidden;}
+.apiref .navgroup.collapsed .navlist{display:none;}
+.apiref .navlist a{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:7px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;line-height:1.25;}
+.apiref .navlist a:hover{background:var(--line2);color:var(--ink);}
+.apiref .navlist a.active{background:#eef6f0;color:var(--ink);border-left-color:var(--accent);font-weight:600;}
+.apiref .navlist a .mm{font-size:.58rem;font-weight:800;padding:2px 5px;border-radius:4px;letter-spacing:.03em;flex:0 0 auto;min-width:34px;text-align:center;}
+.apiref .mm.get{background:#e8f0fe;color:#1a56db;}.apiref .mm.post{background:#e6f6ec;color:#0d7a3f;}
+.apiref .mm.patch{background:#fff3e0;color:#b06c08;}
+.apiref [id]{scroll-margin-top:82px;}
+.apiref .ep .m.get{background:#e8f0fe;color:#1a56db;}
+
+/* ── Flow diagram ── */
+.apiref .flow{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin:6px 0 16px;overflow-x:auto;}
+.apiref .flow svg{display:block;min-width:640px;max-width:100%;height:auto;margin:0 auto;}
+.apiref .steps{margin:8px 0 14px;padding-left:0;list-style:none;counter-reset:step;}
+.apiref .steps li{position:relative;padding:8px 0 8px 40px;border-bottom:1px solid var(--line2);counter-increment:step;color:var(--ink);}
+.apiref .steps li:last-child{border-bottom:0;}
+.apiref .steps li::before{content:counter(step);position:absolute;left:0;top:7px;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:.8rem;display:flex;align-items:center;justify-content:center;}
+.apiref .steps li b{color:var(--ink);}
+.apiref .tag{display:inline-block;font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle;}
+.apiref .tag.live{background:#e6f6ec;color:#0d7a3f;}
+.apiref .tag.planned{background:#fff3e0;color:#b06c08;}
+@media(max-width:900px){
+  .apiref .wrap{flex-direction:column;gap:0;}
+  .apiref .docnav{position:static;flex-basis:auto;max-height:none;width:100%;border-bottom:1px solid var(--line);margin-bottom:20px;}
+}
 CSS;
 
 // ── Build the shared content once ────────────────────────────────────────────
 ob_start(); ?>
 <div class="apiref"><div class="wrap">
-  <h1>API Reference</h1>
+  <?php
+  // Sidebar navigation model: group => [ [anchor id, label, method], ... ]
+  $nav = [
+    'Getting Started' => [
+      ['overview', 'Overview', ''],
+      ['type-codes', 'Invoice Type Codes', ''],
+      ['api-flow', 'API Flow (Customer → NRS)', ''],
+    ],
+    'Onboarding' => [
+      ['request-business-key', 'Request Business Key', 'post'],
+    ],
+    'E-Invoicing Lifecycle' => [
+      ['create-invoice', 'Create Invoice', 'post'],
+      ['transmit', 'Transmit Invoice', 'post'],
+      ['status', 'Invoice Status', 'get'],
+    ],
+    'Payments & Reporting' => [
+      ['payment-status', 'Update Payment Status', 'patch'],
+      ['report', 'Report VAT', 'post'],
+    ],
+    'Invoices' => [
+      ['get-sent-invoices', 'Get Sent Invoices', 'get'],
+      ['fetch-received-invoices', 'Fetch Received Invoices', 'get'],
+    ],
+    'Webhooks' => [
+      ['webhook-inbound', 'Inbound (from FIRS)', 'post'],
+      ['webhook-outbound', 'Outbound (to you)', 'post'],
+    ],
+    'Resources' => [
+      ['health', 'Health Check', 'get'],
+      ['portal-endpoints', 'FIRS / NRS Endpoints', ''],
+    ],
+  ];
+  ?>
+  <aside class="docnav">
+    <?php foreach ($nav as $group => $items): ?>
+    <div class="navgroup">
+      <button type="button" onclick="this.parentNode.classList.toggle('collapsed')">
+        <span><?php echo htmlspecialchars($group); ?></span><span class="chev">&#9660;</span>
+      </button>
+      <div class="navlist">
+        <?php foreach ($items as [$id, $label, $mm]): ?>
+        <a href="#<?php echo $id; ?>" data-target="<?php echo $id; ?>"><?php
+          if ($mm) { echo '<span class="mm '.$mm.'">'.strtoupper($mm).'</span>'; }
+          else { echo '<span class="mm" style="visibility:hidden">GET</span>'; }
+        ?><span><?php echo htmlspecialchars($label); ?></span></a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <?php endforeach; ?>
+  </aside>
+  <main class="doccontent">
+  <h1 id="overview">API Reference</h1>
   <p class="lead">The <span class="hl">Virdi E-Invoice</span> API lets you submit, sign, and manage
     <span class="hl">FIRS</span>-compliant e-invoices programmatically. All fields follow the
     <span class="hl">FIRS / NRS BIS 3.0</span> (Business Invoice Standard).</p>
@@ -84,7 +216,7 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:8px;">
+  <div class="card" id="type-codes" style="margin-bottom:8px;">
     <div class="lbl">FIRS/NRS Invoice Type Codes</div>
     <div class="codes">
       <div><b>380</b>Credit Note</div>
@@ -99,9 +231,57 @@ ob_start(); ?>
     </div>
   </div>
 
-  <h2 class="sec">Invoices</h2>
+  <h2 class="sec" id="api-flow">API Flow — Customer → NRS</h2>
+  <div class="card" style="margin-bottom:22px;">
+    <p style="margin-top:0;color:var(--muted);">Here is how a single invoice moves from your system, through the Virdi
+      middleware, to the FIRS/NRS platform. Your system calls two endpoints — <span class="mono">POST /api/v1/invoices</span>
+      (which validates, signs and QR-stamps the invoice with FIRS) and <span class="mono">POST /api/v1/invoices/:reference/transmit</span>
+      (which pushes the signed invoice on to the NRS gateway for clearance).</p>
+    <?php echo flow_diagram(); ?>
+  </div>
 
-  <div class="ep">
+  <h2 class="sec">Onboarding</h2>
+
+  <div class="ep" id="request-business-key">
+    <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/onboarding/business-key</span><span class="tag planned">Planned</span></div>
+    <div class="ep-b">
+      <p class="desc">Request API credentials (a <b>business key</b> and secret) for a registered business. The business key
+        authenticates every subsequent call via the <span class="mono">x-client-key</span> / <span class="mono">x-client-secret</span>
+        headers. Provisioned once per business; rotate a compromised key by requesting a fresh one.</p>
+      <div class="lbl">Request Body Fields (<span class="rq">*</span> = required)</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">business_name <span class="rq">*</span></td><td class="t">string</td><td>Registered legal name of the business.</td></tr>
+          <tr><td class="p">tin <span class="rq">*</span></td><td class="t">string</td><td>Business TIN (e.g. 22047671-0001).</td></tr>
+          <tr><td class="p">email <span class="rq">*</span></td><td class="t">string</td><td>Contact email that will own the credentials.</td></tr>
+          <tr><td class="p">webhook_url</td><td class="t">string</td><td>Optional URL to receive status callbacks.</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X POST "'.$base.'/api/v1/onboarding/business-key" \\
+  -H "Content-Type: application/json" \\
+  -d \'{…}\''); ?></pre>
+      <div class="lbl">Request Body</div>
+<pre><?php echo hljson('{
+  "business_name": "Virdi Nigeria Limited",
+  "tin": "22047671-0001",
+  "email": "info@virdi.com.ng",
+  "webhook_url": "https://your-app.example/webhooks/firs"
+}'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "business_id": "0eb6969b-353a-4638-ba53-d449b413d6a3",
+  "x_client_key": "ak_live_9f2c…",
+  "x_client_secret": "sk_live_7b81…",
+  "note": "Store the secret securely — it is shown only once."
+}'); ?></pre>
+    </div>
+  </div>
+
+  <h2 class="sec">E-Invoicing Lifecycle</h2>
+
+  <div class="ep" id="create-invoice">
     <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices</span></div>
     <div class="ep-b">
       <p class="desc">Create and submit a new FIRS/NRS-compliant invoice. The middleware builds the IRN,
@@ -315,13 +495,27 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="ep">
+  <div class="ep" id="transmit">
     <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices/:reference/transmit</span></div>
     <div class="ep-b">
       <p class="desc">Transmit a previously-signed invoice to the FIRS/NRS gateway. The invoice must already be
         created and signed (see <span class="mono">POST /api/v1/invoices</span>); this pushes it on to the NRS
         platform using its IRN so it is cleared and reflected on the FIRS portal. No request body is required
         (an empty JSON body <span class="mono">{}</span> is accepted).</p>
+
+      <div class="lbl">How the data flows (customer → NRS)</div>
+      <?php echo flow_diagram(); ?>
+      <ol class="steps">
+        <li>Your system creates and signs the invoice with <b>POST /api/v1/invoices</b>. The middleware builds the
+          IRN, <b>validates</b> and <b>signs</b> the payload with FIRS, and generates the <b>QR code</b>. The invoice is now in the <span class="mono">signed</span> state.</li>
+        <li>Your system calls <b>POST /api/v1/invoices/{reference}/transmit</b> for that invoice.</li>
+        <li>The middleware looks up the signed invoice by your reference, resolves its <b>IRN</b>, and reconstructs the exact payload that was signed.</li>
+        <li>The middleware calls the FIRS/NRS transmit endpoint <b>POST /api/v1/invoice/transmit/{IRN}</b> using the government <b>APP/SI</b> credentials (never exposed to you).</li>
+        <li>NRS validates the transmission and either <b>clears</b> it (approved) or <b>rejects</b> it.</li>
+        <li>On success the invoice is marked <span class="mono">transmitted</span>; the middleware then confirms delivery via
+          <b>GET /invoice/confirm/{IRN}</b> and fires the <span class="mono">invoice.transmitted</span> webhook to your <span class="mono">webhook_url</span>.</li>
+      </ol>
+
       <div class="lbl">Path Parameters</div>
       <table>
         <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
@@ -351,7 +545,7 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="ep">
+  <div class="ep" id="status">
     <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/:reference/status</span></div>
     <div class="ep-b">
       <p class="desc">Check the live FIRS status for a previously submitted invoice: pipeline status, retry
@@ -374,7 +568,7 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="ep">
+  <div class="ep" id="health">
     <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/health</span></div>
     <div class="ep-b">
       <p class="desc">Liveness probe. No authentication required.</p>
@@ -387,7 +581,7 @@ ob_start(); ?>
 
   <h2 class="sec">Payments &amp; Reporting</h2>
 
-  <div class="ep">
+  <div class="ep" id="payment-status">
     <div class="ep-h"><span class="m patch">PATCH</span><span class="path">/api/v1/invoices/:reference/payment-status</span></div>
     <div class="ep-b">
       <p class="desc">Update the invoice payment status. Call this when the buyer pays. Besides storing the
@@ -430,7 +624,7 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="ep">
+  <div class="ep" id="report">
     <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/invoices/:reference/report</span></div>
     <div class="ep-b">
       <p class="desc">Report the invoice VAT basis to FIRS/NRS (post-payment reporting).</p>
@@ -467,9 +661,88 @@ ob_start(); ?>
     </div>
   </div>
 
+  <h2 class="sec">Invoices</h2>
+
+  <div class="ep" id="get-sent-invoices">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/sent</span><span class="tag planned">Planned</span></div>
+    <div class="ep-b">
+      <p class="desc">Retrieve a paginated list of all invoices your business has <b>sent</b>, with filtering by status and date.</p>
+      <div class="lbl">Query Parameters</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">status</td><td class="t">string</td><td>Filter by FIRS status: SIGNED | TRANSMITTED | FAILED (optional).</td></tr>
+          <tr><td class="p">from</td><td class="t">string</td><td>Issue date from (YYYY-MM-DD) - optional.</td></tr>
+          <tr><td class="p">to</td><td class="t">string</td><td>Issue date to (YYYY-MM-DD) - optional.</td></tr>
+          <tr><td class="p">page</td><td class="t">number</td><td>Page number (default 1).</td></tr>
+          <tr><td class="p">size</td><td class="t">number</td><td>Page size (default 50, max 100).</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/invoices/sent?status=SIGNED&page=1&size=50" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "data": [
+    {
+      "reference": "VIRDI-FULL-001",
+      "irn": "VIRDIXML01-4BB2353A-20260810",
+      "firs_status": "signed",
+      "customer": "Acme Trading Limited",
+      "issue_date": "2026-08-10",
+      "payable_amount": 96750,
+      "payment_status": "PENDING"
+    }
+  ],
+  "page": 1,
+  "size": 50,
+  "total": 1
+}'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep" id="fetch-received-invoices">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/received</span><span class="tag planned">Planned</span></div>
+    <div class="ep-b">
+      <p class="desc">Retrieve a paginated list of invoices issued <b>to</b> your business by other suppliers on the NRS
+        network (received / inbound invoices). Requires FIRS inbound-invoice access for your entity.</p>
+      <div class="lbl">Query Parameters</div>
+      <table>
+        <thead><tr><th style="width:46%">Parameter</th><th style="width:14%">Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td class="p">from</td><td class="t">string</td><td>Received date from (YYYY-MM-DD) - optional.</td></tr>
+          <tr><td class="p">to</td><td class="t">string</td><td>Received date to (YYYY-MM-DD) - optional.</td></tr>
+          <tr><td class="p">page</td><td class="t">number</td><td>Page number (default 1).</td></tr>
+          <tr><td class="p">size</td><td class="t">number</td><td>Page size (default 50, max 100).</td></tr>
+        </tbody>
+      </table>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/invoices/received?page=1&size=50" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{
+  "data": [
+    {
+      "irn": "SUPP123-9AB2C3D4-20260805",
+      "supplier": "Lagos Cement Plc",
+      "supplier_tin": "30012345-0001",
+      "issue_date": "2026-08-05",
+      "payable_amount": 250000,
+      "received_at": "2026-08-05T12:04:00+01:00"
+    }
+  ],
+  "page": 1,
+  "size": 50,
+  "total": 1
+}'); ?></pre>
+    </div>
+  </div>
+
   <h2 class="sec">Webhooks</h2>
 
-  <div class="ep">
+  <div class="ep" id="webhook-inbound">
     <div class="ep-h"><span class="m post">POST</span><span class="path">/api/v1/webhook/firs</span></div>
     <div class="ep-b">
       <p class="desc">Inbound endpoint that receives FIRS status push events. Register this URL with FIRS.
@@ -481,7 +754,7 @@ ob_start(); ?>
     </div>
   </div>
 
-  <div class="ep">
+  <div class="ep" id="webhook-outbound">
     <div class="ep-h"><span class="m post">POST</span><span class="path">Outbound &rarr; your webhook_url</span></div>
     <div class="ep-b">
       <p class="desc">On every status change the middleware POSTs to your configured <span class="mono">webhook_url</span>.
@@ -504,7 +777,7 @@ x-webhook-signature: sha256=<hmac>'); ?>
     </div>
   </div>
 
-  <h2 class="sec">FIRS / NRS (MBS) Portal Endpoints</h2>
+  <h2 class="sec" id="portal-endpoints">FIRS / NRS (MBS) Portal Endpoints</h2>
   <div class="card">
     <p style="color:var(--muted);margin-top:0;">Each submitted invoice flows through these government portal
       endpoints. FIRS issues two credential sets: the <b>APP</b> key and the <b>SI</b> key.</p>
@@ -525,7 +798,41 @@ x-webhook-signature: sha256=<hmac>'); ?>
       encrypted with the FIRS public key and base64-encoded, per the FIRS QR-code spec.</p>
   </div>
 
+  </main>
 </div></div>
+<script>
+(function(){
+  var nav = document.querySelector('.apiref .docnav');
+  if(!nav) return;
+  var links = [].slice.call(nav.querySelectorAll('a[data-target]'));
+  var byId = {}; links.forEach(function(a){ byId[a.dataset.target] = a; });
+  function setActive(a){ links.forEach(function(x){ x.classList.remove('active'); }); if(a) a.classList.add('active'); }
+  // Click a sidebar item -> smooth-scroll to that section.
+  links.forEach(function(a){
+    a.addEventListener('click', function(e){
+      var el = document.getElementById(a.dataset.target);
+      if(el){ e.preventDefault();
+        el.scrollIntoView({behavior:'smooth', block:'start'});
+        history.replaceState(null, '', '#'+a.dataset.target);
+        setActive(a);
+      }
+    });
+  });
+  // Scrollspy: highlight the section currently in view.
+  var targets = links.map(function(a){ return document.getElementById(a.dataset.target); }).filter(Boolean);
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){
+          var a = byId[en.target.id];
+          if(a){ setActive(a); var grp = a.closest('.navgroup'); if(grp) grp.classList.remove('collapsed'); }
+        }
+      });
+    }, {rootMargin:'-80px 0px -70% 0px', threshold:0});
+    targets.forEach(function(t){ io.observe(t); });
+  }
+})();
+</script>
 <?php
 $content = ob_get_clean();
 
@@ -547,7 +854,7 @@ if ($loggedIn) {
 <style>
   body{margin:0;background:#f6f8fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1b2230;}
   .apitop{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e6e9ef;}
-  .apitop .in{max-width:960px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+  .apitop .in{max-width:1200px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
   .apitop .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;}
   .apitop .logo{width:30px;height:30px;border-radius:8px;background:#0d7a3f;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;}
   .apitop .pill{font-size:.68rem;font-weight:600;color:#69707e;background:#eef1f6;border-radius:20px;padding:2px 9px;}
