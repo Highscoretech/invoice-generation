@@ -664,7 +664,7 @@ ob_start(); ?>
   <h2 class="sec">Invoices</h2>
 
   <div class="ep" id="get-sent-invoices">
-    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/sent</span><span class="tag planned">Planned</span></div>
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/sent</span></div>
     <div class="ep-b">
       <p class="desc">Retrieve a paginated list of all invoices your business has <b>sent</b>, with filtering by status and date.</p>
       <div class="lbl">Query Parameters</div>
@@ -703,7 +703,7 @@ ob_start(); ?>
   </div>
 
   <div class="ep" id="fetch-received-invoices">
-    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/received</span><span class="tag planned">Planned</span></div>
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/invoices/received</span></div>
     <div class="ep-b">
       <p class="desc">Retrieve a paginated list of invoices issued <b>to</b> your business by other suppliers on the NRS
         network (received / inbound invoices). Requires FIRS inbound-invoice access for your entity.</p>
