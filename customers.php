@@ -340,8 +340,12 @@ include 'includes/header.php';
         <div class="form-section-header">Tax & Legal Information</div>
         <div class="row row-gap text-start">
             <div class="col-md-4">
-                <label class="form-label">GSTIN</label>
-                <input type="text" class="form-control" name="tax_id" value="<?php echo $customer['tax_id'] ?? ''; ?>">
+                <label class="form-label">TIN (Tax ID)</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="tax_id" id="tax_id" value="<?php echo htmlspecialchars($customer['tax_id'] ?? ''); ?>">
+                    <button class="btn btn-outline-primary" type="button" id="verifyTinBtn"><i class="fas fa-check-circle me-1"></i>Verify</button>
+                </div>
+                <div id="tinResult" class="small mt-1"></div>
             </div>
             <div class="col-md-4">
                 <label class="form-label">PAN</label>
@@ -456,5 +460,34 @@ include 'includes/header.php';
     </form>
 </div>
 <?php endif; ?>
+
+<script>
+(function(){
+  var btn = document.getElementById('verifyTinBtn');
+  if(!btn) return;
+  var out = document.getElementById('tinResult');
+  function show(cls, icon, msg){
+    out.innerHTML = '';
+    var s = document.createElement('span'); s.className = cls;
+    var i = document.createElement('i'); i.className = icon + ' me-1';
+    s.appendChild(i); s.appendChild(document.createTextNode(msg));
+    out.appendChild(s);
+  }
+  btn.addEventListener('click', function(){
+    var tin = (document.getElementById('tax_id').value || '').trim();
+    if(!tin){ show('text-danger','fas fa-exclamation-circle','Enter a TIN first.'); return; }
+    btn.disabled = true;
+    show('text-muted','fas fa-spinner fa-spin','Verifying…');
+    fetch('verify_tin.php?tin=' + encodeURIComponent(tin))
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if(d.valid){ show('text-success','fas fa-check-circle', d.message || 'Valid'); }
+        else { show('text-warning','fas fa-exclamation-triangle', d.message || 'Could not verify'); }
+      })
+      .catch(function(){ show('text-danger','fas fa-times-circle','Verification request failed.'); })
+      .finally(function(){ btn.disabled = false; });
+  });
+})();
+</script>
 
 <?php include 'includes/footer.php'; ?>

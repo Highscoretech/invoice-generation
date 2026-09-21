@@ -149,6 +149,19 @@ class FirsClient
         return in_array($status, ['PAID', 'PARTIAL', 'REJECTED'], true) ? $status : null;
     }
 
+    /**
+     * POST /api/v1/utilities/verify-tin — verify a taxpayer TIN with FIRS/NRS.
+     *
+     * Returns the normalised response array; on success NRS echoes the taxpayer
+     * details for the TIN. NOTE: like transmit, this resource is gated behind a
+     * FIRS entity authorisation — until Virdi's entity is granted access it
+     * returns 403 "user does not have access to this resource".
+     */
+    public function verifyTin(string $tin): array
+    {
+        return $this->request('POST', '/api/v1/utilities/verify-tin', ['tin' => trim($tin)]);
+    }
+
     /** GET /api/v1/invoice/resources/{name} — reference data (tax categories, etc.). */
     public function getResource(string $name): array
     {

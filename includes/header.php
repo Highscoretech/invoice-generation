@@ -149,6 +149,7 @@ $role = $_SESSION['role'] ?? '';
             <a class="nav-link <?php echo $page_title === 'All Invoices' ? 'active' : ''; ?>" href="invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php elseif ($role === 'accountant'): ?>
             <a class="nav-link <?php echo $page_title === 'Create Invoice' ? 'active' : ''; ?>" href="create_invoice.php"><i class="fas fa-plus-circle"></i> Create Invoice</a>
+            <a class="nav-link <?php echo $page_title === 'Bulk Upload' ? 'active' : ''; ?>" href="bulk_upload.php"><i class="fas fa-file-upload"></i> Bulk Upload</a>
             <a class="nav-link <?php echo $page_title === 'My Invoices' ? 'active' : ''; ?>" href="my_invoices.php"><i class="fas fa-file-invoice"></i> All Invoices</a>
         <?php endif; ?>
 
