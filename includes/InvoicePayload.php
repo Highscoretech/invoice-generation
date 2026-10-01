@@ -117,6 +117,23 @@ class InvoicePayload
         $taxInclusive = round($taxExclusive + $taxAmount, 2);
         $total        = $taxInclusive;
 
+        // Supplier party is built once and reused for payee_party and
+        // tax_representative_party (per client requirement: same as supplier).
+        $supplierParty = self::party([
+            'name'    => $company['name'] ?? '',
+            'tin'     => $company['tin_number'] ?? $company['tax_id'] ?? '',
+            'email'   => $company['email'] ?? '',
+            'phone'   => $company['phone'] ?? '',
+            'address' => $company['address'] ?? '',
+            'city'    => $company['city'] ?? '',
+            'postal_zone' => $company['postal_code'] ?? '',
+            'country' => $company['country'] ?? 'Nigeria',
+            'description' => $company['industry'] ?? 'General trade',
+        ]);
+        $dueDate = !empty($invoice['due_date'])
+            ? date('Y-m-d', strtotime($invoice['due_date']))
+            : date('Y-m-d', strtotime('+30 days'));
+
         $payload = [
             'invoice_kind'           => self::nz($invoice['invoice_kind'] ?? '', 'B2B'),
             'business_id'            => $businessId,
@@ -128,17 +145,7 @@ class InvoicePayload
             'payment_status'         => $paymentStat,
             'document_currency_code' => $currency,
             'tax_currency_code'      => $currency,
-            'accounting_supplier_party' => self::party([
-                'name'    => $company['name'] ?? '',
-                'tin'     => $company['tin_number'] ?? $company['tax_id'] ?? '',
-                'email'   => $company['email'] ?? '',
-                'phone'   => $company['phone'] ?? '',
-                'address' => $company['address'] ?? '',
-                'city'    => $company['city'] ?? '',
-                'postal_zone' => $company['postal_code'] ?? '',
-                'country' => $company['country'] ?? 'Nigeria',
-                'description' => $company['industry'] ?? 'General trade',
-            ]),
+            'accounting_supplier_party' => $supplierParty,
             'accounting_customer_party' => self::party([
                 'name'    => $customer['name'] ?? '',
                 'tin'     => $customer['tax_id'] ?? '',
@@ -149,6 +156,17 @@ class InvoicePayload
                 'postal_zone' => $customer['billing_postal_code'] ?? '',
                 'country' => $customer['billing_country'] ?? 'Nigeria',
             ]),
+            // Payee and tax representative default to the supplier party.
+            'payee_party'              => $supplierParty,
+            'tax_representative_party' => $supplierParty,
+            'actual_delivery_date'     => date('Y-m-d', strtotime($invoice['date'] ?? 'now')),
+            'payment_means'            => [[
+                'payment_means_code' => '10',
+                'payment_due_date'   => $dueDate,
+            ]],
+            'payment_terms_note'       => !empty($invoice['due_date'])
+                ? ('Payment due by ' . $dueDate . '.')
+                : 'Net 30 days.',
             'legal_monetary_total' => [
                 'line_extension_amount'  => $subtotal,
                 'allowance_total_amount' => $discount,
