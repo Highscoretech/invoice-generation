@@ -23,7 +23,8 @@
             });
         });
     </script>
-</div>
+    </div><!-- /.content -->
+</div><!-- /.main-content -->
 
 </body>
 </html>
