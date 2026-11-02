@@ -170,6 +170,13 @@ ob_start(); ?>
       ['get-sent-invoices', 'Get Sent Invoices', 'get'],
       ['fetch-received-invoices', 'Fetch Received Invoices', 'get'],
     ],
+    'Exchange (NRS)' => [
+      ['exchange-health', 'Self Health Check', 'get'],
+      ['exchange-lookup', 'Lookup IRN', 'get'],
+      ['exchange-lookup-tin', 'Lookup TIN', 'get'],
+      ['exchange-confirm', 'Confirm Receipt', 'patch'],
+      ['exchange-pull', 'Pull Invoices', 'get'],
+    ],
     'Webhooks' => [
       ['webhook-inbound', 'Inbound (from FIRS)', 'post'],
       ['webhook-outbound', 'Outbound (to you)', 'post'],
@@ -737,6 +744,82 @@ ob_start(); ?>
   "size": 50,
   "total": 1
 }'); ?></pre>
+    </div>
+  </div>
+
+  <h2 class="sec" id="exchange-top">Exchange (NRS)</h2>
+  <div class="card" style="margin-bottom:22px;">
+    <p style="margin:0;color:var(--muted);">The NRS <b>Exchange</b> (Access Point Provider) API handles sending, receiving and
+      looking up invoices between parties. These endpoints wrap the government Exchange directly. Like transmit, they
+      require the FIRS entity to be <b>enabled/accredited</b>; until then they return
+      <span class="mono">502 exchange_not_enabled</span>.</p>
+  </div>
+
+  <div class="ep" id="exchange-health">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/exchange/health</span></div>
+    <div class="ep-b">
+      <p class="desc">Sender readiness probe (self health-check). Confirms your Exchange setup and API access before transmitting.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/exchange/health" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "ok": true, "data": { "status": "ready" } }'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep" id="exchange-lookup">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/exchange/lookup/:irn</span></div>
+    <div class="ep-b">
+      <p class="desc">Look up an invoice and its parties by IRN on the Exchange, and check whether it exists and its status.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/exchange/lookup/VIRDIXML01-4BB2353A-20260810" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "ok": true, "irn": "VIRDIXML01-4BB2353A-20260810", "data": { "status": "signed", "supplier": "Virdi Nigeria Limited", "customer": "Acme Trading Limited" } }'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep" id="exchange-lookup-tin">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/exchange/lookup-tin/:tin</span></div>
+    <div class="ep-b">
+      <p class="desc">Look up a party (taxpayer) by TIN on the Exchange.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/exchange/lookup-tin/22047671-0001" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "ok": true, "tin": "22047671-0001", "data": { "party_name": "Virdi Nigeria Limited", "active": true } }'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep" id="exchange-confirm">
+    <div class="ep-h"><span class="m patch">PATCH</span><span class="path">/api/v1/exchange/:irn/confirm</span></div>
+    <div class="ep-b">
+      <p class="desc">Receiver acknowledges a received invoice (confirm receipt). An invoice is marked
+        &ldquo;completely transmitted&rdquo; only once all parties have acknowledged.</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X PATCH "'.$base.'/api/v1/exchange/VIRDIXML01-4BB2353A-20260810/confirm" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••" \\
+  -H "Content-Type: application/json" \\
+  -d \'{}\''); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "ok": true, "irn": "VIRDIXML01-4BB2353A-20260810", "data": { "acknowledged": true } }'); ?></pre>
+    </div>
+  </div>
+
+  <div class="ep" id="exchange-pull">
+    <div class="ep-h"><span class="m get">GET</span><span class="path">/api/v1/exchange/pull</span></div>
+    <div class="ep-b">
+      <p class="desc">Receiver pulls the invoices that have been sent to it on the Exchange (inbound queue).</p>
+      <div class="lbl">Example Request</div>
+<pre><?php echo hlbash('curl -X GET "'.$base.'/api/v1/exchange/pull" \\
+  -H "x-client-key: ak_••••••••••••••••" \\
+  -H "x-client-secret: sk_••••••••••••••••••••••••••••••••"'); ?></pre>
+      <div class="lbl">Response</div>
+<pre><?php echo hljson('{ "ok": true, "data": [ { "irn": "SUPP123-9AB2C3D4-20260805", "supplier": "Lagos Cement Plc", "message": "TRANSMITTING" } ] }'); ?></pre>
     </div>
   </div>
 

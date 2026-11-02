@@ -575,4 +575,65 @@ if ($method === 'POST' && preg_match('#^v1/invoices/(.+)/transmit$#', $route, $m
     ]);
 }
 
+/** Normalise an NRS Exchange response into our API's JSON + HTTP code, then exit. */
+function exchange_respond(array $res, array $extra = []): void
+{
+    if ($res['ok']) {
+        respond(200, array_merge(['ok' => true, 'data' => $res['body']['data'] ?? $res['body'] ?? null], $extra));
+    }
+    $http = (int) ($res['http'] ?? 0);
+    if ($http === 403) {
+        respond(502, array_merge([
+            'ok'      => false,
+            'error'   => 'exchange_not_enabled',
+            'message' => 'FIRS has not enabled the Exchange for this entity yet (403). This will work once the entity is accredited.',
+        ], $extra));
+    }
+    respond($http >= 400 ? $http : 502, array_merge([
+        'ok'      => false,
+        'error'   => 'exchange_error',
+        'http'    => $http,
+        'message' => $res['error'] ?: ('Exchange request failed (HTTP ' . $http . ').'),
+    ], $extra));
+}
+
+// ── NRS Exchange (Access Point Provider) ─────────────────────────────────────
+// Thin wrappers over the NRS /exchange API (sending, receiving and looking up
+// invoices between parties). All require the FIRS entity to be enabled — the same
+// gate as transmit — so until accreditation they return exchange_not_enabled.
+
+// GET /api/v1/exchange/health — sender self health-check (readiness probe)
+if ($method === 'GET' && $route === 'v1/exchange/health') {
+    require_once __DIR__ . '/../includes/FirsClient.php';
+    exchange_respond((new FirsClient())->exchangeHealthCheck());
+}
+
+// GET /api/v1/exchange/pull — receiver pulls invoices addressed to it
+if ($method === 'GET' && $route === 'v1/exchange/pull') {
+    require_once __DIR__ . '/../includes/FirsClient.php';
+    exchange_respond((new FirsClient())->exchangePull());
+}
+
+// GET /api/v1/exchange/lookup-tin/{tin} — look up a party by TIN on the exchange
+if ($method === 'GET' && preg_match('#^v1/exchange/lookup-tin/(.+)$#', $route, $m)) {
+    require_once __DIR__ . '/../includes/FirsClient.php';
+    $tin = urldecode($m[1]);
+    exchange_respond((new FirsClient())->exchangeLookupTin($tin), ['tin' => $tin]);
+}
+
+// GET /api/v1/exchange/lookup/{irn} — look up an invoice + its parties by IRN
+if ($method === 'GET' && preg_match('#^v1/exchange/lookup/(.+)$#', $route, $m)) {
+    require_once __DIR__ . '/../includes/FirsClient.php';
+    $irn = urldecode($m[1]);
+    exchange_respond((new FirsClient())->exchangeLookupIrn($irn), ['irn' => $irn]);
+}
+
+// PATCH /api/v1/exchange/{irn}/confirm — receiver acknowledges a received invoice
+if ($method === 'PATCH' && preg_match('#^v1/exchange/(.+)/confirm$#', $route, $m)) {
+    require_once __DIR__ . '/../includes/FirsClient.php';
+    $irn  = urldecode($m[1]);
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    exchange_respond((new FirsClient())->exchangeConfirmReceipt($irn, $body), ['irn' => $irn]);
+}
+
 respond(404, ['error' => 'route_not_found', 'route' => $route, 'method' => $method]);

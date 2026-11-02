@@ -122,6 +122,42 @@ class FirsClient
         return $this->request('POST', '/api/v1/invoice/transmit/' . rawurlencode($irn), $payload ?: null);
     }
 
+    // ── Exchange (Access Point Provider) ────────────────────────────────────
+    // The NRS "Exchange" API — sending, receiving and looking up invoices between
+    // parties. All of these sit under /invoice/transmit (APP key) and, like
+    // transmit itself, require the FIRS entity to be enabled: until then they
+    // return 403 "user does not have access to this resource".
+
+    /** GET /api/v1/invoice/transmit/self-health-check — sender readiness probe. */
+    public function exchangeHealthCheck(): array
+    {
+        return $this->request('GET', '/api/v1/invoice/transmit/self-health-check');
+    }
+
+    /** GET /api/v1/invoice/transmit/lookup/{IRN} — look up an invoice + its parties by IRN. */
+    public function exchangeLookupIrn(string $irn): array
+    {
+        return $this->request('GET', '/api/v1/invoice/transmit/lookup/' . rawurlencode($irn));
+    }
+
+    /** GET /api/v1/invoice/transmit/lookup/tin/{TIN} — look up a party by TIN on the exchange. */
+    public function exchangeLookupTin(string $tin): array
+    {
+        return $this->request('GET', '/api/v1/invoice/transmit/lookup/tin/' . rawurlencode($tin));
+    }
+
+    /** PATCH /api/v1/invoice/transmit/{IRN} — confirm receipt (acknowledge) a received invoice. */
+    public function exchangeConfirmReceipt(string $irn, array $payload = []): array
+    {
+        return $this->request('PATCH', '/api/v1/invoice/transmit/' . rawurlencode($irn), $payload ?: ['acknowledged' => true]);
+    }
+
+    /** GET /api/v1/invoice/transmit/pull — pull invoices sent to us (receiver). */
+    public function exchangePull(): array
+    {
+        return $this->request('GET', '/api/v1/invoice/transmit/pull');
+    }
+
     /** GET /api/v1/invoice/confirm/{IRN} — delivery/transmission status. */
     public function confirmInvoice(string $irn): array
     {
