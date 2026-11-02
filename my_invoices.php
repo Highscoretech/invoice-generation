@@ -77,7 +77,7 @@ include 'includes/header.php';
             <div class="card text-center">
                 <div class="card-body">
                     <h5 class="card-title text-info">
-                        $<?php echo number_format(array_sum(array_column($invoices, 'total_amount')), 2); ?>
+                        &#8358;<?php echo number_format(array_sum(array_column($invoices, 'total_amount')), 2); ?>
                     </h5>
                     <p class="card-text text-muted">Total Value</p>
                 </div>
@@ -118,7 +118,7 @@ include 'includes/header.php';
                             <td class="text-end">
                                 <?php
                                     $cur = $invoice['currency'] ?? 'USD';
-                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '₦')));
                                     echo '<strong>' . $sym . number_format($invoice['total_amount'], 2) . '</strong>';
                                 ?>
                             </td>

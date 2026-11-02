@@ -158,7 +158,7 @@ include 'includes/header.php';
                             <td class="py-3 text-muted" style="font-size: 0.85rem;">
                                 <?php
                                     $cur = $itm['currency'] ?? 'USD';
-                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                                    $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '₦')));
                                     echo $itm['selling_price'] ? $sym . number_format($itm['selling_price'], 2) : '-';
                                 ?>
                             </td>

@@ -42,7 +42,7 @@ $stmt->execute();
 $invoice_items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $currency = !empty($invoice_items) ? ($invoice_items[0]['item_currency'] ?? 'USD') : 'USD';
-$sym = $currency === 'INR' ? '₹' : ($currency === 'EUR' ? '€' : ($currency === 'GBP' ? '£' : ($currency === 'NGN' ? '₦' : '$')));
+$sym = $currency === 'INR' ? '₹' : ($currency === 'EUR' ? '€' : ($currency === 'GBP' ? '£' : ($currency === 'NGN' ? '₦' : '₦')));
 $page_title = 'Invoice ' . $invoice['invoice_number'];
 include 'includes/header.php';
 ?>
@@ -173,14 +173,14 @@ include 'includes/header.php';
                     <td class="text-end">
                         <?php
                             $icur = $item['item_currency'] ?? $currency;
-                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '₦')));
                             echo $isym . number_format($item['rate'], 2);
                         ?>
                     </td>
                     <td class="text-end">
                         <?php
                             $icur = $item['item_currency'] ?? $currency;
-                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '$')));
+                            $isym = $icur === 'INR' ? '₹' : ($icur === 'EUR' ? '€' : ($icur === 'GBP' ? '£' : ($icur === 'NGN' ? '₦' : '₦')));
                             echo $isym . number_format($item['amount'], 2);
                         ?>
                     </td>

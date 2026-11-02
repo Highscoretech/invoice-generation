@@ -59,7 +59,7 @@ include 'includes/header.php';
                 <td>
                     <?php
                         $cur = $invoice['currency'] ?? 'USD';
-                        $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '$')));
+                        $sym = $cur === 'INR' ? '₹' : ($cur === 'EUR' ? '€' : ($cur === 'GBP' ? '£' : ($cur === 'NGN' ? '₦' : '₦')));
                         echo $sym . number_format($invoice['total_amount'], 2);
                     ?>
                 </td>
